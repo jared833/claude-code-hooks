@@ -1,7 +1,7 @@
 # Claude Code hooks that actually run
 
 Four [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
-setup. Each one exists because something went wrong once, and the comment at the top of every
+setup. Each one exists because something went wrong, and the comment at the top of every
 file tells that story. They are not toy examples. They run on every session.
 
 - **deploy-recheck** stops a "publish this whole folder" command and shows you what is really
