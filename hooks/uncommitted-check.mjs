@@ -85,7 +85,7 @@ for (const [root, mine] of touched) {
   // Untracked directories are the one case needing care: git reports `foo/` as a single
   // entry, so a file written at foo/bar/baz.txt has to match by prefix.
   // A '*' sentinel (recorded by a shell command, which has no single file path) means
-  // "report every dirty file in this repo" — we cannot know which files the shell touched.
+  // "report every dirty file in this repo", since we cannot know which files the shell touched.
   const reportAll = mine.has('*');
   const isMine = d => reportAll || mine.has(d.path)
     || (d.path.endsWith('/') && [...mine].some(m => m.startsWith(d.path)));

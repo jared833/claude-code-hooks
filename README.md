@@ -69,6 +69,13 @@ files called out. Re-run the identical command and it proceeds, as long as the f
 changed since you were shown the list. The point is that you approve a real, current file list
 at the moment of publishing, not a picture of the folder you formed earlier.
 
+It picks the target by taking the last argument that is a directory on disk, and if the command
+names none, it falls back to listing the current directory. When an argument looks like a path
+but is not a directory, the message says so instead of presenting that fallback as the deploy
+contents, because a listing you cannot trust is worse than no listing. On Windows a `/tmp/...`
+path from a Bash shell is mapped through the real temp directory rather than the current drive
+root, which is where it would otherwise land and quietly resolve to nothing.
+
 Verify it, with `git` and Node installed:
 
 ```

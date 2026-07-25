@@ -116,18 +116,29 @@ function tokenize(s) {
 // user@host:/path) never count as a local dir.
 // A POSIX absolute path from Git Bash (`/tmp/deploy`) is not a Windows path. Node resolves
 // it against the current drive root (`C:\tmp\deploy`), which does not exist, so the token
-// silently fails to resolve and the cwd fallback below takes over. That is the worst
+// silently failed to resolve and the cwd fallback below took over. That is the worst
 // possible outcome for this hook: it prints an authoritative listing of a directory that
 // is not the one being published, and then lets the deploy through. Any recipe that stages an
-// enumerated copy into /tmp and publishes that will hit it, which means the check was
-// blind to exactly the kind of careful command it rewards you for using.
-// `/tmp` is the only one of these worth translating, because it is the one every recipe
-// uses and the one MSYS maps to a location Node can name.
+// enumerated copy into /tmp and publishes that will hit it, which means the check was blind
+// to exactly the kind of careful command it is meant to reward.
+//
+// `/tmp/x` is the only mapping worth making: it is what staged-copy recipes use, and MSYS maps it
+// somewhere Node can name. ORDER MATTERS, and getting it wrong cost a second bug in the
+// first version of this fix. A token starting with `/` came from a POSIX shell and can never
+// mean `C:\`, so the MSYS candidate has to be tried FIRST. Tried second, a stray `C:\tmp\x`
+// shadows the real target and we are straight back to listing the wrong folder.
+//
+// Bare `/tmp` is deliberately NOT mapped. Nobody publishes their whole temp directory, and
+// walking it churns the fingerprint on every attempt, so the retry could never match and the
+// hook would become the permanent block it promises never to be.
 function candidates(t) {
-  const out = [resolve(cwd, t)];
-  const posixTmp = /^\/tmp(\/.*)?$/.exec(t);
-  if (posixTmp) out.push(join(tmpdir(), posixTmp[1] || ''));
-  return out;
+  // Bare `/tmp` gets NO candidate, so it reads as unresolved and warns. Mapping it would
+  // walk the whole temp tree and churn the fingerprint; letting it fall through to `C:\tmp`
+  // would silently list a folder that has nothing to do with the deploy, on any machine
+  // where that path happens to exist. Neither is worth it for a command nobody means to run.
+  if (/^\/tmp\/?$/.test(t)) return [];
+  const posix = /^\/tmp\/(.+)$/.exec(t);
+  return posix ? [join(tmpdir(), posix[1]), resolve(cwd, t)] : [resolve(cwd, t)];
 }
 
 function resolveDir(tokens) {
@@ -142,12 +153,17 @@ function resolveDir(tokens) {
     if (/^[^\s/\\]+@[^\s]+:/.test(t)) continue; // user@host:/path remote
     try {
       const cleaned = t.replace(/[\\/]+$/, '') || t;
-      let hit = null;
+      let hit = null, exists = false;
       for (const p of candidates(cleaned)) {
-        if (existsSync(p) && statSync(p).isDirectory()) { hit = p; break; }
+        if (!existsSync(p)) continue;
+        exists = true;                                       // a file, say: real, just not a dir
+        if (statSync(p).isDirectory()) { hit = p; break; }
       }
       if (hit) found = hit;                                  // keep last, not first
-      else if (/[\\/]/.test(t)) unresolvedPath = t;           // looked like a path, was not one
+      // Only a token that resolves to NOTHING is worth remarking on. One that points at a
+      // real file (`gh release upload v1 dist/app.zip`) is not a mystery, and calling it
+      // missing would be a false statement in the one place this hook has to be trusted.
+      else if (!exists && /[\\/]/.test(t)) unresolvedPath = t;
     } catch { /* not a path, keep looking */ }
   }
   // No directory argument (e.g. bare `wrangler deploy` reading wrangler.toml).
@@ -246,11 +262,16 @@ const lines = [];
 
 lines.push(`Publish re-check. This command publishes a whole directory, not a list of files you chose:`);
 lines.push(`  ${seg}`);
+// Deliberately does not assert WHY the token did not resolve, only that it did not. The
+// branch fires on any unresolved token containing a separator, which includes things that
+// were never paths at all (`--branch=feat/thing`), so a confident diagnosis here would be
+// this hook doing the exact thing it exists to prevent: stating something it has not checked.
 if (unresolvedTarget) {
-  lines.push(`WARNING: the command names "${unresolvedTarget}", which this check could not find`);
-  lines.push(`on disk. A POSIX path from a Bash shell does not resolve on Windows. So the listing`);
-  lines.push(`below is the CURRENT DIRECTORY, not what is about to be published. Read it as`);
-  lines.push(`context only, and verify the real target yourself before you re-run.`);
+  lines.push(`WARNING: "${unresolvedTarget}" is not a directory on this machine.`);
+  lines.push(`If that was meant to be the publish target, then the listing below is NOT what`);
+  lines.push(`will ship. It is the current directory, shown as context only. Check the path`);
+  lines.push(`before you re-run. (If it was never a path, ignore this.) On Windows the usual`);
+  lines.push(`cause is a POSIX path from a Bash shell, which does not resolve here.`);
   lines.push('');
 }
 lines.push(`Target: ${targetDir}${unresolvedTarget ? '  (fallback, see warning above)' : ''}`);
