@@ -2,7 +2,7 @@
 // Deploy strings live here, never in the outer Bash command, so if you run this while the
 // hook itself is active in your own session, writing this file cannot trip it.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, existsSync, rmdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -90,6 +90,15 @@ console.log('EDGE CASES (must never hard-error):');
   console.log(`  ${r.status === 0 ? 'PASS' : '**FAIL**'} (exit ${r.status})  empty payload`);
   if (r.status !== 0) fails++;
 }
+{
+  // JSON.parse succeeds on the literal `null`, so this used to throw a stack trace into the
+  // transcript. Exit 1 fails open and never blocked anything, but a stack trace is not the
+  // quiet step-aside the README promises.
+  const r = spawnSync(NODE, [HOOK], { input: 'null', encoding: 'utf8' });
+  const clean = r.status === 0 && !(r.stderr || '').includes('TypeError');
+  console.log(`  ${clean ? 'PASS' : '**FAIL**'} (exit ${r.status})  literal null payload, no stack trace`);
+  if (!clean) fails++;
+}
 
 console.log('RETRY SEMANTICS:');
 rmSync(TOKENS, { recursive: true, force: true });
@@ -163,21 +172,40 @@ if (process.platform === 'win32') {
   const cTmpExisted = existsSync('C:/tmp');
   const decoy = 'C:/tmp/drt-collide';
   const real = join(tmpdir(), 'drt-collide');
-  rmSync(decoy, { recursive: true, force: true });
-  rmSync(real, { recursive: true, force: true });
-  mkdirSync(decoy, { recursive: true });
-  mkdirSync(real, { recursive: true });
-  writeFileSync(join(decoy, 'DECOY-wrong-dir.txt'), 'x');
-  writeFileSync(join(real, 'REAL-payload.html'), 'x');
-  const collide = fire(join(S, 'repo'), `npx wrangler pages ${D} /tmp/drt-collide --project-name=x`);
-  const rightOne = collide.out.includes('REAL-payload.html') && !collide.out.includes('DECOY-wrong-dir.txt');
-  console.log(`  ${rightOne ? 'PASS' : '**FAIL**'} a decoy C:\\tmp\\x does not shadow the real /tmp/x`);
-  if (!rightOne) fails++;
-  rmSync(decoy, { recursive: true, force: true });
-  rmSync(real, { recursive: true, force: true });
-  // Leave no C:\tmp behind if this test created it: a stray one changes what the bare /tmp
-  // case above resolves to, which is how this suite first went green on one machine only.
-  if (!cTmpExisted) rmSync('C:/tmp', { recursive: true, force: true });
+  // Writing at the drive root can be denied. Report that as a skip rather than crashing.
+  let droveRoot = true;
+  try {
+    rmSync(decoy, { recursive: true, force: true });
+    mkdirSync(decoy, { recursive: true });
+  } catch { droveRoot = false; console.log('  SKIP  cannot write C:\\tmp on this machine'); }
+
+  if (droveRoot) {
+    rmSync(real, { recursive: true, force: true });
+    mkdirSync(real, { recursive: true });
+    writeFileSync(join(decoy, 'DECOY-wrong-dir.txt'), 'x');
+    writeFileSync(join(real, 'REAL-payload.html'), 'x');
+    const collide = fire(join(S, 'repo'), `npx wrangler pages ${D} /tmp/drt-collide --project-name=x`);
+    const rightOne = collide.out.includes('REAL-payload.html') && !collide.out.includes('DECOY-wrong-dir.txt');
+    console.log(`  ${rightOne ? 'PASS' : '**FAIL**'} a decoy C:\\tmp\\x does not shadow the real /tmp/x`);
+    if (!rightOne) fails++;
+
+    // A leading / in PowerShell really does mean the current drive root, so those commands
+    // must take the ordinary path with no mapping. This is also the only observable proxy for
+    // the win32 half of the guard, since both go through the same flag and a POSIX host cannot
+    // be simulated from here. Get it wrong and macOS users get the wrong folder listed.
+    rmSync(TOKENS, { recursive: true, force: true });
+    const ps = fire(join(S, 'repo'), `wrangler pages ${D} /tmp/drt-collide --project-name=x`, 'PowerShell');
+    const tookDriveRoot = ps.out.includes('DECOY-wrong-dir.txt') && !ps.out.includes('REAL-payload.html');
+    console.log(`  ${tookDriveRoot ? 'PASS' : '**FAIL**'} PowerShell /tmp/x is NOT mapped, it means the drive root`);
+    if (!tookDriveRoot) fails++;
+
+    rmSync(decoy, { recursive: true, force: true });
+    rmSync(real, { recursive: true, force: true });
+    // Leave no C:\tmp behind if this test created it: a stray one changes what the bare /tmp
+    // case above resolves to, which is how this suite first went green on one machine only.
+    // Non-recursive on purpose, so it fails safely if anything else landed there meanwhile.
+    if (!cTmpExisted) { try { rmdirSync('C:/tmp'); } catch { /* not empty, leave it */ } }
+  }
 }
 
 

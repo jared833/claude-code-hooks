@@ -44,10 +44,17 @@ const TOKEN_DIR = join(tmpdir(), 'claude-deploy-recheck');
 const bail = () => process.exit(0); // any doubt, stay out of the way
 
 let input;
-try { input = JSON.parse(readFileSync(0, 'utf8')); } catch { bail(); }
+// `|| {}` matters: JSON.parse succeeds on the literal `null`, and the property reads below
+// would then throw a stack trace into the transcript. Exit 1 fails open, so it does not
+// block, but a stack trace is not the quiet step-aside this hook promises.
+try { input = JSON.parse(readFileSync(0, 'utf8')) || {}; } catch { bail(); }
 
 const command = (input.tool_input || {}).command || '';
 if (!command.trim()) bail();
+
+// Which shell wrote the command decides what a leading `/` means, so the path handling
+// below needs it. Anything other than an explicit PowerShell call is treated as POSIX.
+const isPowerShell = String(input.tool_name || '') === 'PowerShell';
 
 const cwd = input.cwd && existsSync(input.cwd) ? input.cwd : process.cwd();
 
@@ -118,27 +125,38 @@ function tokenize(s) {
 // it against the current drive root (`C:\tmp\deploy`), which does not exist, so the token
 // silently failed to resolve and the cwd fallback below took over. That is the worst
 // possible outcome for this hook: it prints an authoritative listing of a directory that
-// is not the one being published, and then lets the deploy through. Any recipe that stages an
-// enumerated copy into /tmp and publishes that will hit it, which means the check was blind
-// to exactly the kind of careful command it is meant to reward.
+// is not the one being published, and then lets the deploy through. Any recipe that stages
+// an enumerated copy into /tmp and publishes that will hit it, which means the check was
+// blind to exactly the kind of careful command it is meant to reward.
 //
-// `/tmp/x` is the only mapping worth making: it is what staged-copy recipes use, and MSYS maps it
-// somewhere Node can name. ORDER MATTERS, and getting it wrong cost a second bug in the
-// first version of this fix. A token starting with `/` came from a POSIX shell and can never
-// mean `C:\`, so the MSYS candidate has to be tried FIRST. Tried second, a stray `C:\tmp\x`
-// shadows the real target and we are straight back to listing the wrong folder.
+// The `/tmp/x` mapping is worth making ONLY on Windows, out of a POSIX shell. Two
+// bugs came out of getting the conditions wrong, both of them the same silent wrong-directory
+// listing this is meant to close:
 //
-// Bare `/tmp` is deliberately NOT mapped. Nobody publishes their whole temp directory, and
-// walking it churns the fingerprint on every attempt, so the retry could never match and the
-// hook would become the permanent block it promises never to be.
+//   - Mapping second. A stray `C:\tmp\x` then shadowed the real target, so the drive-root
+//     guess won over the true one.
+//   - Mapping everywhere. On macOS `os.tmpdir()` is `/var/folders/...`, not `/tmp`, so
+//     mapping inverted a path that was already correct and listed the wrong folder on the
+//     platform most people are on. On POSIX, `/tmp/x` simply means `/tmp/x`.
+//
+// So: only on win32, and only for a command from a POSIX shell, where `/tmp` is an MSYS
+// fiction rather than a real location. In PowerShell a leading `/` really does mean the
+// current drive root, so its commands take the ordinary path untouched. And when the shell
+// is POSIX the drive root is not a candidate AT ALL, rather than a fallback: if the mapping
+// misses (MSYS2 points `/tmp` at `C:\msys64\tmp`, not `%TEMP%`) the honest answer is to warn,
+// not to quietly list whatever `C:\tmp` happens to hold.
+//
+// Bare `/tmp` under those same conditions gets no candidate either, so it warns. Mapping it
+// would walk the whole temp tree, and that churn changes the fingerprint on every attempt, so
+// the retry could never match and the hook would become the permanent block it promises not
+// to be.
+const mapsPosixTmp = process.platform === 'win32' && !isPowerShell;
+
 function candidates(t) {
-  // Bare `/tmp` gets NO candidate, so it reads as unresolved and warns. Mapping it would
-  // walk the whole temp tree and churn the fingerprint; letting it fall through to `C:\tmp`
-  // would silently list a folder that has nothing to do with the deploy, on any machine
-  // where that path happens to exist. Neither is worth it for a command nobody means to run.
+  if (!mapsPosixTmp) return [resolve(cwd, t)];
   if (/^\/tmp\/?$/.test(t)) return [];
   const posix = /^\/tmp\/(.+)$/.exec(t);
-  return posix ? [join(tmpdir(), posix[1]), resolve(cwd, t)] : [resolve(cwd, t)];
+  return posix ? [join(tmpdir(), posix[1])] : [resolve(cwd, t)];
 }
 
 function resolveDir(tokens) {

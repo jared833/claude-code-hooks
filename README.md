@@ -69,12 +69,20 @@ files called out. Re-run the identical command and it proceeds, as long as the f
 changed since you were shown the list. The point is that you approve a real, current file list
 at the moment of publishing, not a picture of the folder you formed earlier.
 
-It picks the target by taking the last argument that is a directory on disk, and if the command
-names none, it falls back to listing the current directory. When an argument looks like a path
-but is not a directory, the message says so instead of presenting that fallback as the deploy
-contents, because a listing you cannot trust is worse than no listing. On Windows a `/tmp/...`
-path from a Bash shell is mapped through the real temp directory rather than the current drive
-root, which is where it would otherwise land and quietly resolve to nothing.
+It picks the target by taking the last argument that is a directory on disk, and falls back to
+the current directory when the command names none. When an argument resolves to nothing at all
+and looks like a path, the message says so, rather than presenting that fallback listing as the
+deploy contents. A listing you cannot trust is worse than no listing. An argument that names a
+real file is left alone, since that is not a mystery worth a warning.
+
+One platform note. On Windows, a `/tmp/...` path in a command from a POSIX shell is mapped
+through the real temp directory, because that is where the shell means, and the Windows drive
+root is not consulted at all: if the mapping finds nothing you get the warning instead of a
+quiet listing of whatever `C:\tmp` happens to hold. The same path from PowerShell is left
+alone, because there a leading slash really does mean the drive root. On macOS and Linux
+nothing is mapped at all, since `/tmp/x` already means `/tmp/x`. In that one mapped case, bare
+`/tmp` with no subpath is left unresolved and warns instead: walking a whole temp tree would
+change the fingerprint on every attempt, and the retry could then never match.
 
 Verify it, with `git` and Node installed:
 
