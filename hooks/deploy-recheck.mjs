@@ -114,8 +114,25 @@ function tokenize(s) {
 // otherwise win if a same-named folder happened to sit in cwd. Covers `.`, `./dist`, quoted
 // paths with spaces, and `rsync -av ./site/ host:/x`. Flags and remote targets (s3://,
 // user@host:/path) never count as a local dir.
+// A POSIX absolute path from Git Bash (`/tmp/deploy`) is not a Windows path. Node resolves
+// it against the current drive root (`C:\tmp\deploy`), which does not exist, so the token
+// silently fails to resolve and the cwd fallback below takes over. That is the worst
+// possible outcome for this hook: it prints an authoritative listing of a directory that
+// is not the one being published, and then lets the deploy through. Any recipe that stages an
+// enumerated copy into /tmp and publishes that will hit it, which means the check was
+// blind to exactly the kind of careful command it rewards you for using.
+// `/tmp` is the only one of these worth translating, because it is the one every recipe
+// uses and the one MSYS maps to a location Node can name.
+function candidates(t) {
+  const out = [resolve(cwd, t)];
+  const posixTmp = /^\/tmp(\/.*)?$/.exec(t);
+  if (posixTmp) out.push(join(tmpdir(), posixTmp[1] || ''));
+  return out;
+}
+
 function resolveDir(tokens) {
   let found = null;
+  let unresolvedPath = null;
   for (const raw of tokens.slice(1)) {
     // `--dir=./dist` and friends carry the path in the flag value.
     const eq = /^--?[\w-]+=(.+)$/.exec(raw);
@@ -124,17 +141,30 @@ function resolveDir(tokens) {
     if (/^[a-z0-9]+:\/\//i.test(t)) continue;   // scheme:// remote
     if (/^[^\s/\\]+@[^\s]+:/.test(t)) continue; // user@host:/path remote
     try {
-      const p = resolve(cwd, t.replace(/[\\/]+$/, '') || t);
-      if (existsSync(p) && statSync(p).isDirectory()) found = p; // keep last, not first
+      const cleaned = t.replace(/[\\/]+$/, '') || t;
+      let hit = null;
+      for (const p of candidates(cleaned)) {
+        if (existsSync(p) && statSync(p).isDirectory()) { hit = p; break; }
+      }
+      if (hit) found = hit;                                  // keep last, not first
+      else if (/[\\/]/.test(t)) unresolvedPath = t;           // looked like a path, was not one
     } catch { /* not a path, keep looking */ }
   }
   // No directory argument (e.g. bare `wrangler deploy` reading wrangler.toml).
   // cwd is the honest guess at what is about to be swept up.
-  return found || cwd;
+  //
+  // But if an argument LOOKED like a directory and did not resolve, cwd is a guess dressed
+  // up as a fact. Say so instead, so the listing is never mistaken for the deploy contents.
+  if (!found && unresolvedPath) return { dir: cwd, unresolved: unresolvedPath };
+  return { dir: found || cwd, unresolved: null };
 }
 
-let targetDir;
-try { targetDir = resolveDir(tokenize(seg)); } catch { bail(); }
+let targetDir, unresolvedTarget;
+try {
+  const r = resolveDir(tokenize(seg));
+  targetDir = r.dir;
+  unresolvedTarget = r.unresolved;
+} catch { bail(); }
 if (!targetDir || !existsSync(targetDir)) bail();
 
 // Walk the tree. Skip .git and node_modules only; dist/ and build/ are usually the payload.
@@ -216,7 +246,14 @@ const lines = [];
 
 lines.push(`Publish re-check. This command publishes a whole directory, not a list of files you chose:`);
 lines.push(`  ${seg}`);
-lines.push(`Target: ${targetDir}`);
+if (unresolvedTarget) {
+  lines.push(`WARNING: the command names "${unresolvedTarget}", which this check could not find`);
+  lines.push(`on disk. A POSIX path from a Bash shell does not resolve on Windows. So the listing`);
+  lines.push(`below is the CURRENT DIRECTORY, not what is about to be published. Read it as`);
+  lines.push(`context only, and verify the real target yourself before you re-run.`);
+  lines.push('');
+}
+lines.push(`Target: ${targetDir}${unresolvedTarget ? '  (fallback, see warning above)' : ''}`);
 lines.push(`Contents RIGHT NOW: ${total} file${total === 1 ? '' : 's'} (.git and node_modules excluded).`);
 lines.push('');
 
