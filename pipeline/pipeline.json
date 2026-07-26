@@ -1,0 +1,7 @@
+{
+  "mode": "manual",
+  "timezone": "America/New_York",
+  "itemsPerDay": 1,
+  "publishHourLocal": 9,
+  "reviewUrl": "https://example.com/review"
+}

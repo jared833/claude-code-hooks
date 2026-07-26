@@ -1,8 +1,30 @@
-# Claude Code hooks that actually run
+# Working parts from a Claude Code setup that runs every day
+
+Five kinds of artifact, all pulled out of a setup that ships real work on a schedule. None of
+these are examples written for a repo. Each one exists because something went wrong first, and
+the file says which thing.
+
+| | What it is | For |
+|---|---|---|
+| [`hooks/`](hooks/) | Four Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
+| [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
+| [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
+| [`scripts/`](scripts/) | `check-baseline.mjs` | Making the standard fail a build instead of rotting in a doc |
+
+They connect. The standard is a rule, the script is what makes the rule real, the pipeline is
+where the script runs, and the review prompts are the part of the pipeline a script cannot do.
+A rule that lives only in a document is invisible to everything except a session that happens
+to read it, so every rule here is attached to something that runs.
+
+MIT licensed. Take any piece on its own.
+
+---
+
+## 1. Hooks
 
 Four [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
-setup. Each one exists because something went wrong, and the comment at the top of every
-file tells that story. They are not toy examples. They run on every session.
+setup. The comment at the top of every file tells the story of the incident that produced it.
 
 - **deploy-recheck** stops a "publish this whole folder" command and shows you what is really
   in the folder first, so stale or untracked files cannot ship silently.
@@ -13,19 +35,19 @@ file tells that story. They are not toy examples. They run on every session.
 - **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
   ship, and hands the finding back for a rewrite.
 
-## What a hook is
+### What a hook is
 
 Claude Code runs a script you name at defined moments (before a tool runs, after it runs, when
 a session ends). The script reads a small JSON payload on stdin and signals back through its
 exit code: `0` lets the action proceed, `2` blocks it and feeds the script's stderr back to
 Claude. That is the whole contract. These four are plain Node scripts, no dependencies.
 
-## Requirements
+### Requirements
 
 - Node 18 or newer (the scripts use only the standard library).
 - `git` on your PATH, for the two git-aware hooks.
 
-## Install
+### Install
 
 Copy the files from `hooks/` anywhere you like. Then wire them into your Claude Code settings
 (`~/.claude/settings.json` for every project, or `.claude/settings.json` inside one repo) by
@@ -57,8 +79,6 @@ mapping each event to the script. This is the full set:
 Use the ones you want. Each block is independent, so you can install a single hook and skip the
 rest. On Windows, if `node` is not on your PATH you may need its full path in the `command`
 string.
-
-## The four hooks
 
 ### deploy-recheck (PreToolUse)
 
@@ -112,14 +132,114 @@ en dashes, and exits `2` with the findings so Claude rewrites them. It never edi
 word list is one writer's taste; open the file and make it yours. It scans only what was just
 written, so it is fast and never touches the rest of the file.
 
-## A note on behavior
+### A note on behavior
 
 Two of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you confirm,
 and `uncommitted-check` blocks the end of a session once. Both are designed to fail open, so any
 unexpected input, a missing tool, or an error makes them step aside rather than stand in your
-way. Read each file's header before you install it; the comment explains exactly what it does
-and the one incident it came from.
+way. Read each file's header before you install it.
+
+---
+
+## 2. Standards
+
+[`standards/web-interface-baseline.md`](standards/web-interface-baseline.md)
+
+Five things every page ships: `color-scheme` on `html`, a `theme-color` meta tag in every head,
+a `prefers-reduced-motion` block, `touch-action` and `-webkit-tap-highlight-color` on controls,
+and a global `:focus-visible` ring with no `transition: all` anywhere.
+
+They came out of an audit of four live sites that were all missing the same five. Each rule
+gets the specific defect it fixes (a white scrollbar on a dark page, a 300ms tap delay that
+reads as lag, a keyboard user with no visible focus) and the copy-paste CSS. Four of the five
+live in a shared stylesheet, so one edit covers every page that inherits it. The fifth cannot,
+which is exactly why it is the one that goes missing.
+
+The five rules are adopted from [Vercel Labs' Web Interface
+Guidelines](https://github.com/vercel-labs/web-interface-guidelines), which is MIT licensed,
+the same as this repo. The write-up and the checker are original.
+
+---
+
+## 3. Review prompts
+
+[`review-prompts/README.md`](review-prompts/README.md)
+
+Two prompts you paste into a fresh agent before a change ships, and the reasoning for why they
+have to go to a fresh one. The thesis:
+
+> Do not trust the test file, because the same model that wrote the code wrote its tests.
+
+A model that misunderstood the requirement writes code expressing the misunderstanding, then
+writes tests asserting it, then runs them, then reports green. Nothing inside that loop can
+detect the error. The fix is to put the check in a context that does not contain the belief.
+
+Prompt 1 is an independent code review: correctness, security, and whether the diff could be
+smaller. Prompt 2 is value validation, for anything whose right answer exists outside your code
+in a published table or standard. It makes the reviewer derive expected values by hand from the
+source **before** reading the existing test file, because values seen first become an anchor.
+
+---
+
+## 4. Pipeline config
+
+[`pipeline/`](pipeline/)
+
+A shape for letting an agent ship work on a schedule without approving each step, and without
+it merging something broken. Two files: a markdown playbook the agent reads and executes top to
+bottom, and a six-line JSON file holding the values a human changes without editing the
+playbook.
+
+The one that earns its keep is `mode`: `manual` publishes only what a human approved, `auto`
+treats an unreviewed draft as approved. That word is the whole difference between a pipeline
+you babysit and one that runs while you sleep.
+
+The playbook's load-bearing parts are a resume check as stage zero (finish last run's failure
+before starting new work), blocking checks explicitly separated from advisory ones, independent
+review as a blocking check, a failure protocol that never ends in a merge, and a definition of
+done that is stricter than "merged".
+
+---
+
+## 5. Audit script
+
+[`scripts/check-baseline.mjs`](scripts/check-baseline.mjs)
+
+What makes the standard above real. It walks a built tree and fails the build on any page
+missing one of the five rules. Node 18+, no dependencies.
+
+```
+node scripts/check-baseline.mjs dist
+```
+
+Wire it to something that runs in the same change: a `postbuild` script, a CI step, a line in
+the deploy recipe.
+
+```json
+"scripts": { "postbuild": "node scripts/check-baseline.mjs dist" }
+```
+
+Point it at the **shipped** tree, never at source. That distinction is the finding that started
+this: a grep over source said all four sites were clean of `transition: all`, and they were
+not, because a build step and a copied vendor file had put it back.
+
+Two design choices worth stealing if you write your own. It judges each page on its own inline
+CSS plus exactly the stylesheets that page links, rather than on the site's CSS as a whole,
+because judging site-wide let a bare 404 page ship with none of the rules while a sibling's
+stylesheet covered for it. And the theme-color check is per page by necessity, since a
+stylesheet cannot supply a meta tag.
+
+Verify it:
+
+```
+node scripts/check-baseline.test.mjs
+```
+
+---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE). The five rules in the web-interface baseline are adopted from
+[Vercel Labs' Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines),
+which is also MIT licensed. The prose, the CSS as written here, and the checker are this repo's
+own work.
