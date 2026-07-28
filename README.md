@@ -35,7 +35,8 @@ setup. The comment at the top of every file tells the story of the incident that
 - **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
   ship, and hands the finding back for a rewrite.
 - **session-close-check** refuses to let a session end after it rewrote a skill, a hook, your
-  settings, or CLAUDE.md itself, if nothing in that same session updated a doc to match.
+  settings, or CLAUDE.md itself, if nothing in that same session updated a doc to match, or if
+  other live docs still name what it changed and it never opened them.
 
 ### What a hook is
 
@@ -146,13 +147,21 @@ written, so it is fast and never touches the rest of the file.
 One file plays two roles, switched on `hook_event_name`: on every `PostToolUse` it records
 whether the file you just touched is a system surface (a skill, a hook, your settings, or
 CLAUDE.md) or documentation (a README, CLAUDE.md again, a diagram, or anything under a
-`memory/`, `docs/`, or `documentation/` path). On `Stop`, if the session touched a system
-surface, or wrote ten-plus other files, and never wrote to anything on the documentation list,
-it blocks once with a checklist: find what else describes the thing you just changed, fix the
-stale copies, record it somewhere that gets read again, and file real follow-ups instead of
-leaving them in chat. It never blocks a second time in the same session, and it always lets you
-say "nothing else describes this" and move on. Read the file header for the incident that
-produced it and exactly what it can and cannot see.
+`memory/`, `docs/`, or `documentation/` path). It also records the SCREAMING_SNAKE identifiers
+that session wrote or deleted. On `Stop`, if the session touched a system surface, or wrote
+ten-plus other files, and never wrote to anything on the documentation list, it blocks once with
+a checklist: find what else describes the thing you just changed, fix the stale copies, record
+it somewhere that gets read again, and file real follow-ups instead of leaving them in chat.
+
+Writing some docs used to end the check there. It no longer does: the hook greps your doc roots
+(`~/CLAUDE.md`, `~/.claude/CLAUDE.md`, each `~/.claude/projects/*/memory`, and every repo's
+`CLAUDE.md` and `docs/`) for files naming one of those identifiers that the session never
+opened, and blocks with that list. Roughly 90ms. It is a grep and not a verdict: a dated entry
+describing what WAS true is correct history and should stay, so the list is candidates to read.
+It only matches SCREAMING_SNAKE names, so a renamed skill or a changed number is still yours to
+find. It never blocks a second time in the same session, and it always lets you say "nothing
+else describes this" and move on. Read the file header for the incidents that produced it and
+exactly what it can and cannot see.
 
 Verify it:
 
@@ -164,7 +173,8 @@ node hooks/session-close-check.test.mjs
 
 Three of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
 confirm, `uncommitted-check` blocks the end of a session once, and `session-close-check` blocks
-the end of a session once if it reshaped the system and documented none of it. All three are
+the end of a session once if it reshaped the system and either documented none of it or left
+live docs naming what it changed unopened. All three are
 designed to fail open, so any unexpected input, a missing tool, or an error makes them step
 aside rather than stand in your way. Read each file's header before you install it.
 
