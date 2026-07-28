@@ -6,7 +6,7 @@ the file says which thing.
 
 | | What it is | For |
 |---|---|---|
-| [`hooks/`](hooks/) | Four Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`hooks/`](hooks/) | Five Claude Code hooks | Stopping a session from shipping the wrong thing |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
@@ -23,7 +23,7 @@ MIT licensed. Take any piece on its own.
 
 ## 1. Hooks
 
-Four [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
+Five [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
 setup. The comment at the top of every file tells the story of the incident that produced it.
 
 - **deploy-recheck** stops a "publish this whole folder" command and shows you what is really
@@ -34,13 +34,15 @@ setup. The comment at the top of every file tells the story of the incident that
   only ever asks about work this session actually did.
 - **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
   ship, and hands the finding back for a rewrite.
+- **session-close-check** refuses to let a session end after it rewrote a skill, a hook, your
+  settings, or CLAUDE.md itself, if nothing in that same session updated a doc to match.
 
 ### What a hook is
 
 Claude Code runs a script you name at defined moments (before a tool runs, after it runs, when
 a session ends). The script reads a small JSON payload on stdin and signals back through its
 exit code: `0` lets the action proceed, `2` blocks it and feeds the script's stderr back to
-Claude. That is the whole contract. These four are plain Node scripts, no dependencies.
+Claude. That is the whole contract. These five are plain Node scripts, no dependencies.
 
 ### Requirements
 
@@ -64,13 +66,20 @@ mapping each event to the script. This is the full set:
       { "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           { "type": "command", "command": "node /path/to/hooks/ai-tells-check.mjs" },
-          { "type": "command", "command": "node /path/to/hooks/track-edits.mjs" }
+          { "type": "command", "command": "node /path/to/hooks/track-edits.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" }
         ] },
       { "matcher": "Bash|PowerShell",
-        "hooks": [{ "type": "command", "command": "node /path/to/hooks/track-edits.mjs" }] }
+        "hooks": [
+          { "type": "command", "command": "node /path/to/hooks/track-edits.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" }
+        ] }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "node /path/to/hooks/uncommitted-check.mjs" }] }
+      { "hooks": [
+          { "type": "command", "command": "node /path/to/hooks/uncommitted-check.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" }
+        ] }
     ]
   }
 }
@@ -132,12 +141,32 @@ en dashes, and exits `2` with the findings so Claude rewrites them. It never edi
 word list is one writer's taste; open the file and make it yours. It scans only what was just
 written, so it is fast and never touches the rest of the file.
 
+### session-close-check (PostToolUse + Stop)
+
+One file plays two roles, switched on `hook_event_name`: on every `PostToolUse` it records
+whether the file you just touched is a system surface (a skill, a hook, your settings, or
+CLAUDE.md) or documentation (a README, CLAUDE.md again, a diagram, or anything under a
+`memory/`, `docs/`, or `documentation/` path). On `Stop`, if the session touched a system
+surface, or wrote ten-plus other files, and never wrote to anything on the documentation list,
+it blocks once with a checklist: find what else describes the thing you just changed, fix the
+stale copies, record it somewhere that gets read again, and file real follow-ups instead of
+leaving them in chat. It never blocks a second time in the same session, and it always lets you
+say "nothing else describes this" and move on. Read the file header for the incident that
+produced it and exactly what it can and cannot see.
+
+Verify it:
+
+```
+node hooks/session-close-check.test.mjs
+```
+
 ### A note on behavior
 
-Two of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you confirm,
-and `uncommitted-check` blocks the end of a session once. Both are designed to fail open, so any
-unexpected input, a missing tool, or an error makes them step aside rather than stand in your
-way. Read each file's header before you install it.
+Three of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
+confirm, `uncommitted-check` blocks the end of a session once, and `session-close-check` blocks
+the end of a session once if it reshaped the system and documented none of it. All three are
+designed to fail open, so any unexpected input, a missing tool, or an error makes them step
+aside rather than stand in your way. Read each file's header before you install it.
 
 ---
 
