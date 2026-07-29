@@ -6,14 +6,15 @@ the file says which thing.
 
 | | What it is | For |
 |---|---|---|
-| [`hooks/`](hooks/) | Five Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`hooks/`](hooks/) | Six Claude Code hooks | Stopping a session from shipping the wrong thing |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
 | [`scripts/`](scripts/) | `check-baseline.mjs` | Making the standard fail a build instead of rotting in a doc |
 
 They connect. The standard is a rule, the script is what makes the rule real, the pipeline is
-where the script runs, and the review prompts are the part of the pipeline a script cannot do.
+where the script runs, the review prompts are the part of the pipeline a script cannot do, and
+one of the hooks is what stops a session finishing without them.
 A rule that lives only in a document is invisible to everything except a session that happens
 to read it, so every rule here is attached to something that runs.
 
@@ -23,7 +24,7 @@ MIT licensed. Take any piece on its own.
 
 ## 1. Hooks
 
-Five [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
+Six [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
 setup. The comment at the top of every file tells the story of the incident that produced it.
 
 - **deploy-recheck** stops a "publish this whole folder" command and shows you what is really
@@ -34,6 +35,8 @@ setup. The comment at the top of every file tells the story of the incident that
   only ever asks about work this session actually did.
 - **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
   ship, and hands the finding back for a rewrite.
+- **review-check** refuses to let a session end while code it wrote has not been read by a
+  fresh agent, and hands over the prompt to send that agent.
 - **session-close-check** refuses to let a session end after it rewrote a skill, a hook, your
   settings, or CLAUDE.md itself, if nothing in that same session updated a doc to match, or if
   other live docs still name what it changed and it never opened them.
@@ -43,7 +46,7 @@ setup. The comment at the top of every file tells the story of the incident that
 Claude Code runs a script you name at defined moments (before a tool runs, after it runs, when
 a session ends). The script reads a small JSON payload on stdin and signals back through its
 exit code: `0` lets the action proceed, `2` blocks it and feeds the script's stderr back to
-Claude. That is the whole contract. These five are plain Node scripts, no dependencies.
+Claude. That is the whole contract. These six are plain Node scripts, no dependencies.
 
 ### Requirements
 
@@ -79,7 +82,8 @@ mapping each event to the script. This is the full set:
     "Stop": [
       { "hooks": [
           { "type": "command", "command": "node /path/to/hooks/uncommitted-check.mjs" },
-          { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" }
+          { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/review-check.mjs" }
         ] }
     ]
   }
@@ -142,6 +146,35 @@ en dashes, and exits `2` with the findings so Claude rewrites them. It never edi
 word list is one writer's taste; open the file and make it yours. It scans only what was just
 written, so it is fast and never touches the rest of the file.
 
+### review-check (Stop)
+
+A model cannot review its own work. The belief that produced the bug also produced the test
+asserting the bug is correct, so the code, the test and the green run are three copies of one
+misunderstanding. Telling the same session to "check it carefully" changes nothing, because the
+belief is still in the context.
+
+When a session tries to end, this reads the transcript, collects every code file written, and
+blocks once with that list and the review prompt to paste into a fresh agent. A completed Agent
+dispatch clears the files written before it, so a review counts for the work it actually saw and
+code written afterwards needs another one. Dispatching is not enough on its own: agents run in
+the background, so the hook waits for the result to come back before crediting it.
+
+The hook cannot spawn the reviewer itself, since a hook is a shell command and not a session.
+What it can do is refuse to finish until the session spawns one, which lands in the same place.
+
+Two limits worth knowing before you install it. It only sees files written through Write, Edit
+and NotebookEdit, so anything a shell command creates (`cat > x.js`, `sed -i`, a codegen step)
+is invisible to it. And it cannot tell a review dispatch from any other subagent, so a fan-out
+sent to search your codebase will satisfy it. Both fail in the quiet direction, which is the
+right one for a check that blocks. The extension list at the top of the file decides what counts
+as code; open it and make it yours.
+
+Verify it:
+
+```
+node hooks/review-check.test.mjs
+```
+
 ### session-close-check (PostToolUse + Stop)
 
 One file plays two roles, switched on `hook_event_name`: on every `PostToolUse` it records
@@ -171,11 +204,11 @@ node hooks/session-close-check.test.mjs
 
 ### A note on behavior
 
-Three of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
-confirm, `uncommitted-check` blocks the end of a session once, and `session-close-check` blocks
-the end of a session once if it reshaped the system and either documented none of it or left
-live docs naming what it changed unopened. All three are
-designed to fail open, so any unexpected input, a missing tool, or an error makes them step
+Four of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
+confirm, `uncommitted-check` blocks the end of a session once, `review-check` blocks it once
+while code sits unreviewed, and `session-close-check` blocks it once if the session reshaped the
+system and either documented none of it or left live docs naming what it changed unopened. All
+four are designed to fail open, so any unexpected input, a missing tool, or an error makes them step
 aside rather than stand in your way. Read each file's header before you install it.
 
 ---
@@ -217,6 +250,9 @@ Prompt 1 is an independent code review: correctness, security, and whether the d
 smaller. Prompt 2 is value validation, for anything whose right answer exists outside your code
 in a published table or standard. It makes the reviewer derive expected values by hand from the
 source **before** reading the existing test file, because values seen first become an anchor.
+
+Prompt 1 is also what `hooks/review-check.mjs` hands back when it blocks, condensed to fit a
+terminal, so the rule and the thing that enforces it say the same thing.
 
 ---
 
