@@ -77,6 +77,17 @@ say so explicitly and say what you checked. Do not pad the list; a short
 honest review beats a long one.
 ```
 
+One addition worth making to that prompt when the change under review IS a test file:
+**make the reviewer break the code on purpose and confirm the test goes red.** Reading a test
+and agreeing that it looks right is the same move as reading code and agreeing that it looks
+right, and it fails the same way. Copy the module, mutate one behaviour, run the suite. A
+mutation the suite survives is a behaviour nobody is testing, whatever the test labels say.
+
+That check found two dead tests in this repo's own review hook on the day it shipped. One
+asserted that an unrelated tool result does not count as a review, and the fixture it used was
+a matching pair, so it was a byte-for-byte duplicate of the test above it wearing a different
+label. Nine mutations, seven caught, two survivors, both of them cases the labels claimed.
+
 Every finding is either fixed or answered in writing before the change ships. An unaddressed
 finding blocks the merge. "The reviewer misunderstood" is an acceptable answer, written down
 where the next person can read it.
