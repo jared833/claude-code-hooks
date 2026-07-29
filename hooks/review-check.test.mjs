@@ -1,6 +1,11 @@
 // Drives review-check.mjs against the failure it exists to catch: a session that writes
 // code and finishes on its own say-so. Each case builds a fake transcript, fires a Stop,
 // and asserts blocked (exit 2) or clean (exit 0).
+//
+// Four of the cases below exist because an independent review proved the suite green
+// against a broken hook. Each is marked with the mutation it now catches, because a test
+// whose label promises coverage it does not deliver is worse than a missing test: it is
+// the same self-confirming loop this hook was written to break.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { writeFileSync, mkdtempSync, rmSync, readdirSync } from 'node:fs';
@@ -18,6 +23,23 @@ const PREFIX = `rc-test-${process.pid}-`;
 
 let n = 0, fails = 0;
 const newSession = () => PREFIX + ++n;
+
+function ck(label, ok) {
+  if (!ok) fails++;
+  console.log(`  ${ok ? 'PASS' : '**FAIL**'}  ${label}`);
+}
+
+// A payload with no session_id keys its marker on a hash of the transcript path. Anything
+// that fires one has to clean up after itself or it litters the shared directory.
+function sweepFallback(path) {
+  try {
+    const h = createHash('sha1').update(path).digest('hex').slice(0, 16);
+    rmSync(join(FIRED, h + '.fired'), { force: true });
+  } catch { /* fine */ }
+}
+
+// Paths as Claude Code actually passes them on this machine: Windows separators, mixed case.
+const WIN = 'C:\\Users\\Jared\\projects\\engage\\src\\api.js';
 
 // Transcript entry helpers. Only the fields the hook reads.
 const use = (name, input, id) => ({ message: { content: [{ type: 'tool_use', name, input, id }] } });
@@ -41,33 +63,40 @@ function fire(entries, extra = {}) {
 
 function t(label, entries, want, extra) {
   const r = fire(entries, extra);
-  const ok = (want === 'block') === (r.code === 2);
-  if (!ok) fails++;
-  console.log(`  ${ok ? 'PASS' : '**FAIL**'} (exit ${r.code}, wanted ${want})  ${label}`);
+  ck(`(exit ${r.code}, wanted ${want})  ${label}`, (want === 'block') === (r.code === 2));
 }
 
 console.log('\nBLOCKS:');
 t('code written, no agent ever dispatched', [wrote('src/auth.js')], 'block');
+t('a Windows path is still code', [wrote(WIN)], 'block');
 t('code edited after the only review', [wrote('a.py'), agent(), edited('b.py')], 'block');
 t('a review, then more code, then a second review, then more code',
   [wrote('a.go'), agent('a1'), wrote('b.go'), agent('a2'), wrote('c.go')], 'block');
 t('a notebook, which is nothing but code', [noted('analysis.ipynb')], 'block');
+// Catches: dropping the lowercase fold on the extension. Has to be a BLOCK case. As a
+// clean case it passes either way, since a file the hook stops recognising as code is
+// exactly what "nothing left to review" looks like.
+t('an uppercase extension is still code', [wrote('LEGACY.PY')], 'block');
 // The one a background dispatch would slip through: the reviewer was sent but has not
 // answered, so nothing has actually been read yet.
 t('agent dispatched but never came back', [wrote('a.js'), dispatched()], 'block');
 t('a second file written while the reviewer is still out',
   [wrote('a.js'), dispatched(), wrote('b.js'), returned()], 'block');
+// Catches: crediting ANY tool_result to an in-flight dispatch instead of matching the id.
+// A session that sends a background agent and then reads one file would finish unblocked
+// with nothing reviewed. The old version of this case paired a dispatch with its OWN
+// result, so it was a duplicate of "code written, then reviewed" wearing another label.
+t('a tool_result from some other tool is not the review coming back',
+  [wrote('a.js'), dispatched('a1'), returned('read-42')], 'block');
 
 console.log('\nCLEAN:');
 t('nothing written at all', [said('hello')], 'clean');
 t('code written, then reviewed', [wrote('src/auth.js'), agent()], 'clean');
-t('every write reviewed after the fact', [wrote('a.ts'), edited('b.ts'), agent()], 'clean');
+t('every write reviewed after the fact', [wrote('a.TS'), edited('b.ts'), agent()], 'clean');
 t('prose only, no code', [wrote('README.md'), wrote('notes.txt'), wrote('data.json')], 'clean');
 t('already blocked once this stop cycle', [wrote('a.js')], 'clean', { stop_hook_active: true });
 t('a subagent\'s own edits do not count as the session\'s',
   [{ isSidechain: true, ...wrote('a.js') }], 'clean');
-t('an unrelated tool_result does not clear anything',
-  [wrote('a.js'), agent('a1')], 'clean');
 
 // Stop fires at the end of EVERY assistant turn, and "code written, no review" stays true
 // across a whole iterative build. Blocking once is a check, blocking twenty times is a trap.
@@ -81,31 +110,51 @@ console.log('\nONCE PER SESSION, not once per turn:');
     encoding: 'utf8',
   }).status;
   const codes = [turn(), turn(), turn()];
-  const ok = codes[0] === 2 && codes[1] === 0 && codes[2] === 0;
-  if (!ok) fails++;
-  console.log(`  ${ok ? 'PASS' : '**FAIL**'}  three turns, same session, exits ${codes.join(',')} (want 2,0,0)`);
+  ck(`three turns, same session, exits ${codes.join(',')} (want 2,0,0)`,
+    codes[0] === 2 && codes[1] === 0 && codes[2] === 0);
 
   const other = spawnSync(NODE, [HOOK], {
     input: JSON.stringify({ hook_event_name: 'Stop', session_id: newSession(), transcript_path: path }),
     encoding: 'utf8',
   }).status;
-  if (other !== 2) fails++;
-  console.log(`  ${other === 2 ? 'PASS' : '**FAIL**'}  a DIFFERENT session still blocks (exit ${other})`);
+  ck(`a DIFFERENT session still blocks (exit ${other})`, other === 2);
+}
+
+// Catches: writing the marker BEFORE the "nothing to report" bail. Most turns end with
+// nothing written, so a hook that spent its one block on a quiet turn would disarm itself
+// for the rest of the session, silently, on the most common turn shape there is.
+{
+  const path = join(DIR, 'later.jsonl');
+  const s = newSession();
+  const turn = () => spawnSync(NODE, [HOOK], {
+    input: JSON.stringify({ hook_event_name: 'Stop', session_id: s, transcript_path: path }),
+    encoding: 'utf8',
+  }).status;
+  writeFileSync(path, JSON.stringify(said('just talking')) + '\n');
+  const quiet = turn();
+  writeFileSync(path, JSON.stringify(said('just talking')) + '\n' + JSON.stringify(wrote('a.js')) + '\n');
+  const later = turn();
+  ck(`a quiet turn does not spend the one block (${quiet} then ${later}, want 0,2)`,
+    quiet === 0 && later === 2);
 }
 
 console.log('\nOUTPUT:');
 {
   const r = fire([wrote('src/auth.js'), edited('src/db.py')]);
-  const checks = [
-    ['names both files', r.out.includes('src/auth.js') && r.out.includes('src/db.py')],
-    ['says not to self-review', /Do not review it yourself/.test(r.out)],
-    ['carries the reviewer prompt', /CORRECTNESS/.test(r.out) && /SECURITY/.test(r.out)],
-    ['says it fires once', /fires once/.test(r.out)],
-  ];
-  for (const [label, ok] of checks) {
-    if (!ok) fails++;
-    console.log(`  ${ok ? 'PASS' : '**FAIL**'}  ${label}`);
-  }
+  ck('names both files', r.out.includes('src/auth.js') && r.out.includes('src/db.py'));
+  ck('says not to self-review', /Do not review it yourself/.test(r.out));
+  ck('carries the reviewer prompt', /CORRECTNESS/.test(r.out) && /SECURITY/.test(r.out));
+  ck('says it fires once', /fires once/.test(r.out));
+}
+// Catches: dropping the separator normalisation, which would list one file twice.
+{
+  const r = fire([wrote(WIN), wrote('C:/Users/Jared/projects/engage/src/api.js')]);
+  ck('the same file in both separator styles counts once', /Unreviewed \(1\)/.test(r.out));
+}
+{
+  const many = Array.from({ length: 30 }, (_, i) => wrote(`f${i}.js`));
+  const r = fire(many);
+  ck('a long list is truncated and says how many it hid', /and 5 more/.test(r.out));
 }
 
 console.log('\nMALFORMED INPUT, never a stack trace:');
@@ -118,9 +167,7 @@ for (const [label, body] of [
   ['numeric transcript_path', '{"hook_event_name":"Stop","transcript_path":42}'],
 ]) {
   const r = spawnSync(NODE, [HOOK], { input: body, encoding: 'utf8' });
-  const clean = r.status === 0 && !(r.stderr || '').includes('TypeError');
-  if (!clean) fails++;
-  console.log(`  ${clean ? 'PASS' : '**FAIL**'} (exit ${r.status})  ${label}`);
+  ck(`(exit ${r.status})  ${label}`, r.status === 0 && !(r.stderr || '').includes('TypeError'));
 }
 
 // A transcript with junk lines mixed in still finds the real writes.
@@ -132,9 +179,9 @@ for (const [label, body] of [
   const r = spawnSync(NODE, [HOOK], {
     input: JSON.stringify({ hook_event_name: 'Stop', transcript_path: path }), encoding: 'utf8',
   });
-  const ok = r.status === 2 && r.stderr.includes('a.js') && !r.stderr.includes('TypeError');
-  if (!ok) fails++;
-  console.log(`  ${ok ? 'PASS' : '**FAIL**'} (exit ${r.status})  junk lines skipped, real write still caught`);
+  ck(`(exit ${r.status})  junk lines skipped, real write still caught`,
+    r.status === 2 && r.stderr.includes('a.js') && !r.stderr.includes('TypeError'));
+  sweepFallback(path);
 }
 
 // A payload with no session_id still gets the once-per-session promise, keyed off the
@@ -146,14 +193,9 @@ for (const [label, body] of [
     input: JSON.stringify({ hook_event_name: 'Stop', transcript_path: path }), encoding: 'utf8',
   }).status;
   const codes = [turn(), turn(), turn()];
-  const ok = codes[0] === 2 && codes[1] === 0 && codes[2] === 0;
-  if (!ok) fails++;
-  console.log(`  ${ok ? 'PASS' : '**FAIL**'}  no session_id, three turns, exits ${codes.join(',')} (want 2,0,0)`);
-  // Keyed on the transcript, so clean up by the same hash the hook would have used.
-  try {
-    const h = createHash('sha1').update(path).digest('hex').slice(0, 16);
-    rmSync(join(FIRED, h + '.fired'), { force: true });
-  } catch { /* fine */ }
+  ck(`no session_id, three turns, exits ${codes.join(',')} (want 2,0,0)`,
+    codes[0] === 2 && codes[1] === 0 && codes[2] === 0);
+  sweepFallback(path);
 }
 
 rmSync(DIR, { recursive: true, force: true });
@@ -165,5 +207,5 @@ try {
   }
 } catch { /* directory may not exist */ }
 console.log(`\nswept ${swept} of this run's own markers, left every other session alone.`);
-console.log(fails === 0 ? '\nALL PASS.' : `\n${fails} FAILURE(S)`);
+console.log(fails === 0 ? 'ALL PASS.' : `${fails} FAILURE(S)`);
 process.exit(fails ? 1 : 0);
