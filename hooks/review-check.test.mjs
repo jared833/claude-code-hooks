@@ -39,7 +39,7 @@ function sweepFallback(path) {
 }
 
 // Paths as Claude Code actually passes them on this machine: Windows separators, mixed case.
-const WIN = 'C:\\Users\\Jared\\projects\\engage\\src\\api.js';
+const WIN = 'C:\\Users\\you\\projects\\app\\src\\api.js';
 
 // Transcript entry helpers. Only the fields the hook reads.
 const use = (name, input, id) => ({ message: { content: [{ type: 'tool_use', name, input, id }] } });
@@ -148,7 +148,7 @@ console.log('\nOUTPUT:');
 }
 // Catches: dropping the separator normalisation, which would list one file twice.
 {
-  const r = fire([wrote(WIN), wrote('C:/Users/Jared/projects/engage/src/api.js')]);
+  const r = fire([wrote(WIN), wrote('C:/Users/you/projects/app/src/api.js')]);
   ck('the same file in both separator styles counts once', /Unreviewed \(1\)/.test(r.out));
 }
 {

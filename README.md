@@ -6,7 +6,7 @@ the file says which thing.
 
 | | What it is | For |
 |---|---|---|
-| [`hooks/`](hooks/) | Six Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`hooks/`](hooks/) | Thirteen Claude Code hooks | Stopping a session from shipping the wrong thing |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
@@ -24,8 +24,11 @@ MIT licensed. Take any piece on its own.
 
 ## 1. Hooks
 
-Six [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
-setup. The comment at the top of every file tells the story of the incident that produced it.
+Thirteen [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
+setup. Not one of them is a demo. The comment at the top of every file tells the story of the
+incident that produced it, including the ones a later review found holes in.
+
+**Stopping the wrong thing from shipping**
 
 - **deploy-recheck** stops a "publish this whole folder" command and shows you what is really
   in the folder first, so stale or untracked files cannot ship silently.
@@ -33,25 +36,62 @@ setup. The comment at the top of every file tells the story of the incident that
   uncommitted on your machine.
 - **track-edits** records which repo each edit and shell command touched, so the check above
   only ever asks about work this session actually did.
-- **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
-  ship, and hands the finding back for a rewrite.
+- **commit-msg-guard** blocks a `git commit -m @'...'@` in the Bash tool, where PowerShell
+  here-string syntax silently turns your commit subject into a lone `@` line.
+
+**Making the session prove its work**
+
 - **review-check** refuses to let a session end while code it wrote has not been read by a
   fresh agent, and hands over the prompt to send that agent.
+- **tdd-gate** refuses to let a session end when logic changed in a project that already has
+  tests and no test file in that same project was touched.
+- **ai-tells-check** flags a list of tired words and em/en dashes in prose you are about to
+  ship, and hands the finding back for a rewrite.
 - **session-close-check** refuses to let a session end after it rewrote a skill, a hook, your
   settings, or CLAUDE.md itself, if nothing in that same session updated a doc to match, or if
   other live docs still name what it changed and it never opened them.
+
+**Telling you what you would not otherwise see**
+
+- **hook-security-scan** scans your always-loaded config (settings, MCP servers, the hook
+  scripts themselves) for hardcoded secrets, unrestricted Bash grants, shell-executing MCP
+  servers and unpinned `npx -y`. Also runs by hand with `--full`.
+- **backup-health** nags at the top of every session when your nightly backup failed or never
+  ran, instead of letting a dead backup stay silent until you need it.
+- **notify** is a shared helper, not an event hook: a phone push through
+  [ntfy.sh](https://ntfy.sh) that reads its topic from one file so rotating it is one edit.
+- **buffer-scheduled-notify** pushes to your phone the moment an agent schedules a social post,
+  so an unattended run is not a black box.
+- **queue-loop-check** makes a producer that builds from a Notion database record what it
+  shipped, so the same idea cannot be built twice with nothing to say so.
 
 ### What a hook is
 
 Claude Code runs a script you name at defined moments (before a tool runs, after it runs, when
 a session ends). The script reads a small JSON payload on stdin and signals back through its
 exit code: `0` lets the action proceed, `2` blocks it and feeds the script's stderr back to
-Claude. That is the whole contract. These six are plain Node scripts, no dependencies.
+Claude. That is the whole contract. All thirteen are plain Node scripts, no dependencies.
 
 ### Requirements
 
 - Node 18 or newer (the scripts use only the standard library).
-- `git` on your PATH, for the two git-aware hooks.
+- `git` on your PATH, for the git-aware hooks.
+- Windows, for `backup-health` only, which reads Task Scheduler. Everything else is portable.
+
+### Optional configuration
+
+Four hooks do nothing until you point them at something, and every one of them stays completely
+silent when unset. That is deliberate: a hook that nags about a resource you never configured is
+how a check gets ignored, and a guessed default is not a configuration.
+
+| Variable | Used by | What it is |
+|---|---|---|
+| `NTFY_TOPIC` or `NTFY_TOPIC_FILE` | `notify`, `buffer-scheduled-notify` | Your ntfy.sh topic, or a file holding it (default `~/.ntfy-topic`). Unset means no push is sent |
+| `CONTENT_QUEUE_ID` | `queue-loop-check` | The Notion data source id of your content database. Unset means the hook exits immediately |
+| `CONTENT_QUEUE_FILE_HINT` | `queue-loop-check` | Optional. A regex matched against written file paths to decide what counts as "produced" (default `scripts`). An invalid regex makes the hook exit quietly rather than throw |
+| `BACKUP_TASK_NAME` | `backup-health` | The exact name of your scheduled backup task. **Required.** Unset means the hook exits immediately and never reports |
+| `BACKUP_LOG_HINT` | `backup-health` | Optional. The log path named in the warning text |
+| `TDD_GATE_DISABLE` | `tdd-gate` | Set to `1` to turn the check off for a messy session |
 
 ### Install
 
@@ -83,11 +123,30 @@ mapping each event to the script. This is the full set:
       { "hooks": [
           { "type": "command", "command": "node /path/to/hooks/uncommitted-check.mjs" },
           { "type": "command", "command": "node /path/to/hooks/session-close-check.mjs" },
-          { "type": "command", "command": "node /path/to/hooks/review-check.mjs" }
+          { "type": "command", "command": "node /path/to/hooks/review-check.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/tdd-gate.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/queue-loop-check.mjs" }
+        ] }
+    ],
+    "SessionStart": [
+      { "hooks": [
+          { "type": "command", "command": "node /path/to/hooks/hook-security-scan.mjs" },
+          { "type": "command", "command": "node /path/to/hooks/backup-health.mjs" }
         ] }
     ]
   }
 }
+```
+
+`commit-msg-guard` goes on the same `PreToolUse` block as `deploy-recheck`. The two
+Notion/Buffer-aware hooks go on a `PostToolUse` matcher naming those MCP tools:
+
+```json
+{ "matcher": "mcp__.*Buffer__create_post|mcp__.*Notion__notion-(query|fetch|update).*",
+  "hooks": [
+    { "type": "command", "command": "node /path/to/hooks/queue-loop-check.mjs" },
+    { "type": "command", "command": "node /path/to/hooks/buffer-scheduled-notify.mjs" }
+  ] }
 ```
 
 Use the ones you want. Each block is independent, so you can install a single hook and skip the
@@ -202,14 +261,126 @@ Verify it:
 node hooks/session-close-check.test.mjs
 ```
 
+### tdd-gate (Stop)
+
+"Did TDD happen" cannot be answered by reading the model's own account of it, for the same
+reason `review-check` does not trust self-review. A model that skipped tests can also write a
+paragraph saying it followed RED, GREEN, REFACTOR, and nothing downstream can tell the
+difference. A well-known agent framework ships a TDD skill where the agent authors its own "TDD
+Evidence Report" markdown file that no hook ever reads, which is the model grading its own
+homework.
+
+This asks a smaller machine-checkable question instead: for each project a source file was
+edited in this session, was a test file in that same project also touched. Not whether it
+passes, not whether it came first. That is a fact about tool calls, not a claim in prose.
+
+A project with zero test files anywhere is left alone, because nothing here knows whether tests
+apply to it and firing there is how a check gets tuned out. Once a project has any test file on
+disk, it has already decided tests apply, and this holds it to its own standard. Set
+`TDD_GATE_DISABLE=1` to skip a session.
+
+Known ceilings, all failing quiet and all listed in the file header: touching a test is not
+writing a real assertion, shell-created files are invisible, and a monorepo where only the root
+carries a marker scopes to the whole monorepo.
+
+```
+node hooks/tdd-gate.test.mjs
+```
+
+### hook-security-scan (SessionStart, or by hand)
+
+Your always-loaded config is the highest blast radius in the setup: every session inherits it
+regardless of which project you open. This scans `settings.json`, `settings.local.json`, the MCP
+servers in `~/.claude.json`, and the hook scripts themselves for hardcoded secrets (AWS, GitHub,
+Slack, private keys, inline key/value assignments), `permissions.allow` granting unrestricted
+Bash, `dangerouslySkipPermissions` set as a default, MCP servers running an inline shell
+command, and `npx -y` with no version pin.
+
+The detection is plain pattern matching, no model call, which is what makes it fast enough to
+run at every session start and portable enough to read in one sitting.
+
+```
+node hooks/hook-security-scan.mjs --full [project-dir]
+```
+
+Worth reading for the comment trail alone: four successive independent reviews each found a
+real hole in the secret-in-a-CLI-arg check, and every one of those fixes and its counter-example
+is preserved in the source and pinned by a test.
+
+```
+node hooks/hook-security-scan.test.mjs
+```
+
+### backup-health (SessionStart)
+
+A backup that fails silently is worse than no backup, because you believe in it. This reads
+Windows Task Scheduler for your backup task and warns at the top of every session if the last
+run failed, if it has not run in 26 hours, or if the task is missing entirely.
+
+It nags every session rather than once, deliberately: a broken backup stays a problem until it
+is fixed. Any failure querying Task Scheduler exits silently, so a bug in the check never nags
+on its own account. Windows only.
+
+**Set `BACKUP_TASK_NAME` or this does nothing.** There is no default task name, on purpose. An
+earlier version guessed one, which meant anyone who installed the hook without a task by that
+exact name got a MISSING notice at the top of every session forever. A check that fires at
+people who never configured it is a check they learn to ignore.
+
+```
+node hooks/backup-health.test.mjs
+```
+
+### commit-msg-guard (PreToolUse)
+
+Narrow and specific. On a machine where PowerShell is the primary shell, muscle memory produces
+`git commit -m @'...'@` inside the Bash tool. In POSIX sh the `@` is literal, so every such
+commit subject comes out as a lone `@` line above the real subject and needs an amend. This
+blocks that one shape and hands back the correct heredoc form. The PowerShell tool is left
+alone, because there the syntax is exactly right.
+
+```
+node hooks/commit-msg-guard.test.mjs
+```
+
+### notify + buffer-scheduled-notify
+
+`notify.mjs` is a helper rather than an event hook: a phone push through ntfy.sh, usable as a
+module, a CLI, or from any other script. It reads its topic from `NTFY_TOPIC` or a file, so
+rotating the topic is one edit no matter how many things send.
+
+`buffer-scheduled-notify.mjs` uses it to push the moment an agent schedules a social post. If
+you let an agent publish on a schedule, this is the difference between trusting it and watching
+it. Both no-op silently with no topic configured.
+
+```
+node hooks/notify.mjs --self-test
+```
+
+### queue-loop-check (PostToolUse + Stop)
+
+For anyone whose content ideas live in a Notion database that agents build from. The failure it
+catches is quiet: a producer reads the database, ships something, and never records that it did,
+so a later run makes the same thing again and nothing anywhere says so.
+
+It fires only on the exact shape of that failure, and only when `CONTENT_QUEUE_ID` names your
+database. The interesting design note is in the file header: an earlier version keyed on a
+property named `Status`, which a Tasks database also has, so ordinary task-status writes silenced
+the check on the normal path. Property names have to be unique across your workspace for this
+kind of inference to hold. Check that before trusting it.
+
+```
+node hooks/queue-loop-check.test.mjs
+```
+
 ### A note on behavior
 
-Four of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
-confirm, `uncommitted-check` blocks the end of a session once, `review-check` blocks it once
-while code sits unreviewed, and `session-close-check` blocks it once if the session reshaped the
-system and either documented none of it or left live docs naming what it changed unopened. All
-four are designed to fail open, so any unexpected input, a missing tool, or an error makes them step
-aside rather than stand in your way. Read each file's header before you install it.
+Seven of these can interrupt you on purpose: `deploy-recheck` blocks a publish until you
+confirm, `commit-msg-guard` blocks one malformed commit, and `uncommitted-check`,
+`review-check`, `tdd-gate`, `session-close-check` and `queue-loop-check` each block the end of a
+session once. Two more, `hook-security-scan` and `backup-health`, show a notice at session start
+and cannot block at all. Every one is designed to fail open, so any unexpected input, a missing
+tool, or an error makes them step aside rather than stand in your way. Read each file's header
+before you install it.
 
 ---
 
