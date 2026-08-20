@@ -1,8 +1,8 @@
 # Skills
 
-Ten [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Nine of
-them are the real production workflows, running unedited except where a private id or a business
-specific had to come out. The tenth is a template.
+Twelve [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Eleven
+of them are the real production workflows, running unedited except where a private id or a business
+specific had to come out. The twelfth is a template.
 
 None of these will run as-is against your accounts. They name a Notion database you do not have,
 a local review app that is not published, a Buffer channel that is not yours. That is on purpose
@@ -25,6 +25,8 @@ refuses to do, and the note explaining why a previous version was wrong.
 | [`x-engage/`](x-engage/) | A social engagement session that drafts in the owner's voice and hands off. Review happens in a local app that is not published here |
 | [`linkedin-engage/`](linkedin-engage/) | The same, for a second network |
 | [`coloring-book/`](coloring-book/) | Builds a print-ready book page by page, with correct trim and bleed |
+| [`build-tool/`](build-tool/) | The spec-first checklist for building one calculator on a technical reference site. Four files, in a fixed order |
+| [`validate-accuracy/`](validate-accuracy/) | Re-derives a calculator's math from the source it claims to implement, without trusting anything its builder wrote |
 
 ## The seat pattern is the reusable idea
 

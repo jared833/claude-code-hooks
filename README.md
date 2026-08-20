@@ -7,7 +7,7 @@ the file says which thing.
 | | What it is | For |
 |---|---|---|
 | [`hooks/`](hooks/) | Thirteen Claude Code hooks | Stopping a session from shipping the wrong thing |
-| [`skills/`](skills/) | Ten skills, nine of them real production workflows | Handing a whole job to an agent, with the stop-and-ask points written in |
+| [`skills/`](skills/) | Twelve skills, eleven of them real production workflows | Handing a whole job to an agent, with the stop-and-ask points written in |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
@@ -389,7 +389,7 @@ before you install it.
 
 [`skills/`](skills/)
 
-Nine production workflows plus one template. These are the real files, not examples written for a
+Eleven production workflows plus one template. These are the real files, not examples written for a
 repo: the content pipeline that drafts a week in one sitting, the one that cuts a shoot into
 finished vertical video and stops before publishing, the autonomous backlog session, the free-tool
 shipper.
