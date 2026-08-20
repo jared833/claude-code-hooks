@@ -1,12 +1,13 @@
 # Working parts from a Claude Code setup that runs every day
 
-Five kinds of artifact, all pulled out of a setup that ships real work on a schedule. None of
+Six kinds of artifact, all pulled out of a setup that ships real work on a schedule. None of
 these are examples written for a repo. Each one exists because something went wrong first, and
 the file says which thing.
 
 | | What it is | For |
 |---|---|---|
 | [`hooks/`](hooks/) | Thirteen Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`skills/`](skills/) | Ten skills, nine of them real production workflows | Handing a whole job to an agent, with the stop-and-ask points written in |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
@@ -384,7 +385,27 @@ before you install it.
 
 ---
 
-## 2. Standards
+## 2. Skills
+
+[`skills/`](skills/)
+
+Nine production workflows plus one template. These are the real files, not examples written for a
+repo: the content pipeline that drafts a week in one sitting, the one that cuts a shoot into
+finished vertical video and stops before publishing, the autonomous backlog session, the free-tool
+shipper.
+
+They will not run against your accounts, and that is deliberate. What is worth copying is the
+shape, and the shape only makes sense with the real decisions left in, including the notes where
+a previous version of a rule turned out to be wrong.
+
+The reusable idea is the **seat**: a named role your business actually has, that Claude answers
+as. Its load-bearing part is two lists, what the seat decides alone and what it must escalate.
+Written down, they turn "help me with this" into delegation with a boundary.
+[`skills/seat-template/`](skills/seat-template/) is that pattern with the specifics stripped out.
+
+---
+
+## 3. Standards
 
 [`standards/web-interface-baseline.md`](standards/web-interface-baseline.md)
 
@@ -404,7 +425,7 @@ the same as this repo. The write-up and the checker are original.
 
 ---
 
-## 3. Review prompts
+## 4. Review prompts
 
 [`review-prompts/README.md`](review-prompts/README.md)
 
@@ -427,7 +448,7 @@ terminal, so the rule and the thing that enforces it say the same thing.
 
 ---
 
-## 4. Pipeline config
+## 5. Pipeline config
 
 [`pipeline/`](pipeline/)
 
@@ -447,7 +468,7 @@ done that is stricter than "merged".
 
 ---
 
-## 5. Audit script
+## 6. Audit script
 
 [`scripts/check-baseline.mjs`](scripts/check-baseline.mjs)
 
