@@ -504,6 +504,28 @@ node scripts/check-baseline.test.mjs
 
 ---
 
+## What this setup runs on
+
+Two outside services show up by name in `skills/`, because the real workflows call them: the
+weekly newsletter is sent through MailerLite, and the social queue is pushed to Buffer. Nothing
+in this repo depends on either one. Nothing here authenticates to either, no file carries a key
+for them, and the skills read as documentation whatever you publish with. The only outbound call
+anywhere in this repo is `notify.mjs` posting to ntfy.sh, and that one returns without sending
+until you configure a topic of your own.
+
+If you want the same wiring, these are affiliate links and I earn a commission if you sign up
+through them:
+
+- [MailerLite](https://jaredhebb.com/go/mailerlite), the newsletter send that
+  [`skills/post-week/`](skills/post-week/) hands off to
+- [Buffer](https://jaredhebb.com/go/buffer), the queue `skills/vid-batch/` pushes carousels and
+  videos to
+
+Both have a free tier. MailerLite's carried this setup for a long time before it was worth
+paying for.
+
+---
+
 ## License
 
 MIT. See [LICENSE](LICENSE). The five rules in the web-interface baseline are adopted from
