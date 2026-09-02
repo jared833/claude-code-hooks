@@ -6,8 +6,8 @@ the file says which thing.
 
 | | What it is | For |
 |---|---|---|
-| [`hooks/`](hooks/) | Thirteen Claude Code hooks | Stopping a session from shipping the wrong thing |
-| [`skills/`](skills/) | Twelve skills, eleven of them real production workflows | Handing a whole job to an agent, with the stop-and-ask points written in |
+| [`hooks/`](hooks/) | Fourteen Claude Code hooks | Stopping a session from shipping the wrong thing |
+| [`skills/`](skills/) | Fourteen skills, thirteen of them real production workflows | Handing a whole job to an agent, with the stop-and-ask points written in |
 | [`standards/`](standards/) | The web-interface baseline | Five rules every page you build should carry |
 | [`review-prompts/`](review-prompts/) | Independent review prompts | Catching what a model cannot catch about its own work |
 | [`pipeline/`](pipeline/) | A release playbook and its config | Letting an agent ship on a schedule without babysitting |
@@ -25,7 +25,7 @@ MIT licensed. Take any piece on its own.
 
 ## 1. Hooks
 
-Thirteen [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
+Fourteen [Claude Code](https://docs.claude.com/en/docs/claude-code) hooks from a working daily
 setup. Not one of them is a demo. The comment at the top of every file tells the story of the
 incident that produced it, including the ones a later review found holes in.
 
@@ -39,6 +39,11 @@ incident that produced it, including the ones a later review found holes in.
   only ever asks about work this session actually did.
 - **commit-msg-guard** blocks a `git commit -m @'...'@` in the Bash tool, where PowerShell
   here-string syntax silently turns your commit subject into a lone `@` line.
+- **bank-raw-guard** refuses any read of `context-bank/raw/`, where full podcast transcripts
+  live, and names the capped search command instead, so one `cat` cannot put 25K tokens into a
+  working session. It matches the reading verb as the command word of a pipeline stage, so
+  writing to those files, listing them and committing them all still work. Change that one path
+  and it guards any directory whose files are too big to open by accident.
 
 **Making the session prove its work**
 
@@ -71,7 +76,7 @@ incident that produced it, including the ones a later review found holes in.
 Claude Code runs a script you name at defined moments (before a tool runs, after it runs, when
 a session ends). The script reads a small JSON payload on stdin and signals back through its
 exit code: `0` lets the action proceed, `2` blocks it and feeds the script's stderr back to
-Claude. That is the whole contract. All thirteen are plain Node scripts, no dependencies.
+Claude. That is the whole contract. All fourteen are plain Node scripts, no dependencies.
 
 ### Requirements
 
@@ -139,8 +144,15 @@ mapping each event to the script. This is the full set:
 }
 ```
 
-`commit-msg-guard` goes on the same `PreToolUse` block as `deploy-recheck`. The two
-Notion/Buffer-aware hooks go on a `PostToolUse` matcher naming those MCP tools:
+`commit-msg-guard` goes on the same `PreToolUse` block as `deploy-recheck`. `bank-raw-guard`
+needs a wider matcher, because it also blocks the Read and Grep tools:
+
+```json
+{ "matcher": "Read|Grep|Bash|PowerShell",
+  "hooks": [{ "type": "command", "command": "node /path/to/hooks/bank-raw-guard.mjs" }] }
+```
+
+The two Notion/Buffer-aware hooks go on a `PostToolUse` matcher naming those MCP tools:
 
 ```json
 { "matcher": "mcp__.*Buffer__create_post|mcp__.*Notion__notion-(query|fetch|update).*",
@@ -343,6 +355,29 @@ alone, because there the syntax is exactly right.
 node hooks/commit-msg-guard.test.mjs
 ```
 
+### bank-raw-guard (PreToolUse)
+
+A context-window guard, not a security one. `context-bank/raw/` holds full podcast and video
+transcripts, roughly 25K tokens each, and agents are supposed to read the distilled playbooks
+above them and reach the raw layer only through a capped search. A single `cat` breaks that,
+silently, and the session is already ruined by the time anyone notices.
+
+The interesting part is what it took to stop refusing ordinary work. An earlier version blocked
+a `printf` writing a document that contained the word "Grep", and a `ls raw/ | head` on the
+strength of the `head`. This one matches the reading verb as the **command word of a pipeline
+stage**, unwrapping `sudo`, `xargs`, `sh -c`, `$(...)` and backticks, and counts a path from an
+earlier stage only when the reader takes filenames off stdin. Writing, `git`, `rm`, `mv`, `ls`
+and `wc` all pass, as do the small `.meta.json` sidecars next to each transcript.
+
+Two leaks are closed outside the hook, and those are the better fixes: an `.ignore` file holding
+`raw/` makes ripgrep skip the directory, so a content search from a parent directory cannot walk
+in, and `.gitattributes` marking the transcripts `-diff` stops the `git diff --cached` before a
+commit from printing all of them.
+
+```
+node hooks/bank-raw-guard.test.mjs
+```
+
 ### notify + buffer-scheduled-notify
 
 `notify.mjs` is a helper rather than an event hook: a phone push through ntfy.sh, usable as a
@@ -389,13 +424,14 @@ before you install it.
 
 [`skills/`](skills/)
 
-Eleven production workflows plus one template. These are the real files, not examples written for a
+Thirteen production workflows plus one template. These are the real files, not examples written for a
 repo: the content pipeline that drafts a week in one sitting, the one that cuts a shoot into
 finished vertical video and stops before publishing, the autonomous backlog session, the free-tool
-shipper.
+shipper, the one that turns a queue of podcast links into a searchable methods library.
 
-They will not run against your accounts, and that is deliberate. What is worth copying is the
-shape, and the shape only makes sense with the real decisions left in, including the notes where
+Most will not run against your accounts, and that is deliberate. (`bank/` is the exception. It
+ships the script it drives and its guard hook, so it works once you point it at your own queue.)
+What is worth copying is the shape, and the shape only makes sense with the real decisions left in, including the notes where
 a previous version of a rule turned out to be wrong.
 
 The reusable idea is the **seat**: a named role your business actually has, that Claude answers

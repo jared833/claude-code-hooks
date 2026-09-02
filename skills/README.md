@@ -1,8 +1,8 @@
 # Skills
 
-Twelve [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Eleven
+Fourteen [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Thirteen
 of them are the real production workflows, running unedited except where a private id or a business
-specific had to come out. The twelfth is a template.
+specific had to come out. The fourteenth is a template.
 
 None of these will run as-is against your accounts. They name a Notion database you do not have,
 a local review app that is not published, a Buffer channel that is not yours. That is on purpose
@@ -16,10 +16,12 @@ refuses to do, and the note explaining why a previous version was wrong.
 | | What it does |
 |---|---|
 | [`seat-template/`](seat-template/) | The pattern for a "seat": a named role in a one-person company that Claude answers as. Start here |
+| [`ship-skill/`](ship-skill/) | The follow-up list for a finished skill or hook: sanitize it, publish it, update every count that drifts, record it |
 | [`busy-work/`](busy-work/) | An autonomous backlog-clearing session. Orchestrator plus a bounded number of workers, runs until told to stop |
 | [`freebie/`](freebie/) | Ships a free tool on a static site end to end: pick it, build it to a written standard, verify, deploy, record |
 | [`post-week/`](post-week/) | Drafts, reviews and queues a week of written content in one sitting |
 | [`idea-vet/`](idea-vet/) | Turns raw captured ideas into a shootable menu, with a full script per item |
+| [`bank/`](bank/) | Drains a queue of podcast and video links into a searchable methods library, distilling each transcript into plays in the same run |
 | [`vid-batch/`](vid-batch/) | Cuts a shoot into finished captioned vertical videos, registers them for review, pushes the approved ones |
 | [`written-redraft/`](written-redraft/) | Rewrites drafts that came back with feedback, then puts them back for re-approval |
 | [`x-engage/`](x-engage/) | A social engagement session that drafts in the owner's voice and hands off. Review happens in a local app that is not published here |
@@ -66,8 +68,17 @@ Claude reads the frontmatter `description` to decide when to load it, so rewrite
 it is the only part that determines whether the skill ever fires.
 
 Then work through the file and replace every placeholder. The ones that were scrubbed are
-obvious: `YOUR-CONTENT-BANK-DATA-SOURCE-ID`, `YOUR-TASKS-DATA-SOURCE-ID`,
+obvious: `YOUR-CONTENT-BANK-DATA-SOURCE-ID`, `YOUR-CONTEXT-SOURCES-DATA-SOURCE-ID`,
+`YOUR-TASKS-DATA-SOURCE-ID`,
 `YOUR-BACKLOG-DATA-SOURCE-ID`, `YOUR-BUFFER-ORG-ID`, `<CANVA-DESIGN-ID>`, `<HOME>`, and any
 other `<angle-bracket>` value.
+
+`bank/` is the exception to "none of these will run as-is". It ships the script it drives
+(`cb.py`, its 19 tests, the `INDEX.md` an agent reads first and the shape of a playbook), and
+its guard hook is [`hooks/bank-raw-guard.mjs`](../hooks/bank-raw-guard.mjs), which already knows
+the directory `cb.py` writes to from here. The script runs against any list of links; only the
+Notion table in `SKILL.md` is a placeholder. [`bank/README.md`](bank/README.md) says what does
+not resolve and what to put in its place. `cb.py` needs `yt-dlp` on your PATH, plus
+`faster-whisper` and `ffmpeg` for the sources that have no captions at all.
 
 MIT, same as the rest of the repo.
