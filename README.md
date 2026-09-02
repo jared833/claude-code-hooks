@@ -39,11 +39,12 @@ incident that produced it, including the ones a later review found holes in.
   only ever asks about work this session actually did.
 - **commit-msg-guard** blocks a `git commit -m @'...'@` in the Bash tool, where PowerShell
   here-string syntax silently turns your commit subject into a lone `@` line.
-- **bank-raw-guard** refuses any read of `context-bank/raw/`, where full podcast transcripts
-  live, and names the capped search command instead, so one `cat` cannot put 25K tokens into a
-  working session. It matches the reading verb as the command word of a pipeline stage, so
-  writing to those files, listing them and committing them all still work. Change that one path
-  and it guards any directory whose files are too big to open by accident.
+- **bank-raw-guard** refuses any read of a directory of full podcast transcripts, and names the
+  capped search command instead, so one `cat` cannot put 25K tokens into a working session. It
+  matches the reading verb as the command word of a pipeline stage, so writing to those files,
+  listing them and committing them all still work. Two directory names are guarded out of the
+  box, `context-bank/raw` and the `skills/bank/raw` you get installing the bank from here. They
+  are one named constant at the top of the file; add yours to it.
 
 **Making the session prove its work**
 
@@ -357,9 +358,13 @@ node hooks/commit-msg-guard.test.mjs
 
 ### bank-raw-guard (PreToolUse)
 
-A context-window guard, not a security one. `context-bank/raw/` holds full podcast and video
+A context-window guard, not a security one. The guarded directory holds full podcast and video
 transcripts, roughly 25K tokens each, and agents are supposed to read the distilled playbooks
-above them and reach the raw layer only through a capped search. A single `cat` breaks that,
+above them and reach the raw layer only through a capped search. Two names ship guarded,
+`context-bank/raw` and `skills/bank/raw`, which is where `cb.py` writes when the bank is
+installed from [`skills/bank/`](skills/bank/). Both live in one constant at the top of the file,
+along with the bank root, which is guarded against a content grep that would sweep the
+transcripts from one directory up. A single `cat` breaks that,
 silently, and the session is already ruined by the time anyone notices.
 
 The interesting part is what it took to stop refusing ordinary work. An earlier version blocked

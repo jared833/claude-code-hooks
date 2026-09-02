@@ -50,6 +50,9 @@ const norm = (p) => String(p).replace(/\\/g, '/');
 // transcripts when the bank is installed from the public repo instead of its own project.
 const GUARDED = /(^|\/)(context-bank|skills\/bank)\/raw(\/|$)/i;
 const inRaw = (p) => GUARDED.test(norm(p));
+// The bank ROOT, for a content grep: it would sweep raw/ from one directory up. Anchored the
+// same way GUARDED is, so a directory called `myskills/bank` somewhere else is not the bank.
+const BANK_ROOT = /(^|\/)(context-bank|skills\/bank)\/?$/i;
 
 // A path as written in a command, resolved the way the shell would resolve it.
 const asPath = (p) => norm(resolve(cwd, String(p).replace(/^["']|["']$/g, '')));
@@ -66,7 +69,7 @@ if (tool === 'Read') {
   // this hook would otherwise push the agent toward, and blocking it strands a session with
   // a refusal message that describes something it did not do.
   const p = asPath(ti.path || '.');
-  if (String(ti.output_mode || '') === 'content' && (inRaw(p) || /(context-bank|skills\/bank)\/?$/i.test(norm(p))))
+  if (String(ti.output_mode || '') === 'content' && (inRaw(p) || BANK_ROOT.test(norm(p))))
     offender = `Grep in ${ti.path || cwd}`;
 } else if (tool === 'Bash' || tool === 'PowerShell') {
   // A heredoc or here-string body is text, not a command. Commit messages, docs and this

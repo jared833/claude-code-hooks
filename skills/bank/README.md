@@ -12,7 +12,7 @@ plays without stopping to ask.
 
 | | |
 |---|---|
-| `SKILL.md` | The workflow. This is the real file out of a working setup, unedited except for the ids |
+| `SKILL.md` | The workflow. The real file out of a working setup: ids and paths swapped, one note added, nothing else |
 | `cb.py` | The script it drives: `add`, `search`, `feed`, `transcript`, `stale` |
 | `test_cb.py` | 19 tests. `python test_cb.py` |
 | `INDEX.md` | The one file an agent reads first, and the play format |

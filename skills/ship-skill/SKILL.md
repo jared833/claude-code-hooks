@@ -47,7 +47,8 @@ Your public repo. Here that is `claude-code-hooks`, MIT.
 
 - `skills/<name>/SKILL.md`, plus any script the skill cannot run without. A skill that ships
   its own script is better than one that does not, so include it when it is yours to give.
-- `hooks/<name>.mjs` **and its test.** Every published hook has a test next to it.
+- `hooks/<name>.mjs` **and its test.** Not every published hook has one, and every one that
+  can be tested should.
 - Any placeholder you invented goes on the list in `skills/README.md` under "Installing one".
 
 **Four places carry counts and every one of them drifts.** Update all four in the same commit:

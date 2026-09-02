@@ -146,6 +146,10 @@ check('PowerShell here-string quoting the example',
 check('Grep content on the playbooks', grep({ pattern: 'Do:', path: `${BANK}/playbooks`, output_mode: 'content' }), false);
 check('Grep content on one playbook file', grep({ pattern: 'Do:', path: `${BANK}/playbooks/offers.md`, output_mode: 'content' }), false);
 check('Grep content at the bank root is still blocked', grep({ pattern: 'x', path: BANK, output_mode: 'content' }), true);
+check('Grep content at the published bank root is blocked too',
+  grep({ pattern: 'x', path: `${HOME}/.claude/skills/bank`, output_mode: 'content' }), true);
+check('a directory merely called bank is not the bank',
+  grep({ pattern: 'x', path: `${HOME}/myskills/bank`, output_mode: 'content' }), false);
 
 // --- what version 3 let through, or blocked wrongly (third review) -----------------
 // A reading verb only counts as the command WORD of its stage. v3 matched it anywhere in the
