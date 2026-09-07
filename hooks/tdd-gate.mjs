@@ -132,6 +132,23 @@ if (existsSync(firedPath)) bail();
 let lines;
 try { lines = readFileSync(transcript, 'utf8').split('\n'); } catch { bail(); }
 
+// A denied or failed tool call still leaves a tool_use block in the transcript. Counting
+// one as a write invents work that never happened: on 2026-09-07 two Edits to a file under
+// ~/.claude/hooks were refused by the permission classifier, the file stayed byte-identical
+// on disk, and this hook demanded a test for it anyway. The verdict lives on the RESULT,
+// which arrives after the call, so collect the failures in their own pass first.
+const failed = new Set();
+for (const line of lines) {
+  if (!line) continue;
+  let entry;
+  try { entry = JSON.parse(line); } catch { continue; }
+  const c = entry && entry.message && entry.message.content;
+  if (!Array.isArray(c)) continue;
+  for (const b of c) {
+    if (b && b.type === 'tool_result' && b.is_error && b.tool_use_id) failed.add(b.tool_use_id);
+  }
+}
+
 // project root -> { source: Set<path>, testTouched: bool }
 const projects = new Map();
 
@@ -146,6 +163,8 @@ for (const line of lines) {
 
   for (const block of content) {
     if (!block || block.type !== 'tool_use') continue;
+    // The call was refused or errored. The file on disk never changed.
+    if (failed.has(block.id)) continue;
     if (block.name !== 'Write' && block.name !== 'Edit' && block.name !== 'NotebookEdit') continue;
     const inp = block.input || {};
     const path = inp.file_path || inp.notebook_path;

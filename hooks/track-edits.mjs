@@ -37,6 +37,61 @@ const filePath = toolInput.file_path || toolInput.notebook_path;
 const shellCwd = (typeof filePath !== 'string' || !filePath) ? input.cwd : null;
 if (!filePath && !shellCwd) bail();
 
+// A shell command that cannot have written anything records nothing. Without this, a
+// `git status` or a grep run with cwd inside a repo arms the Stop nudge exactly as a build
+// would, and the session gets blocked over work it never did. Measured 2026-09-07: the
+// uncommitted-check nudge was answered, and two consecutive read-only commands in
+// ~/.claude/hooks re-armed it before the next turn.
+//
+// Deliberately an ALLOWLIST, and anything unrecognised still records. The '*' sentinel
+// below exists so shell-built work is never silently missed, and that promise is worth
+// more than the noise, so only commands proven to write are dropped. False negatives here
+// cost real work; false positives cost one wasted nudge.
+const READ_ONLY = new Set([
+  'cd', 'ls', 'dir', 'pwd', 'cat', 'head', 'tail', 'wc', 'echo', 'stat', 'file',
+  'grep', 'rg', 'egrep', 'fgrep', 'which', 'where', 'cut',
+  'diff', 'du', 'df', 'basename', 'dirname', 'true', 'date', 'printf', 'tr', 'nl',
+]);
+
+// git is not read-only as a whole, so it is matched on its subcommand. `fetch` is here
+// because it writes only inside .git; the Stop hook reads the worktree, which fetch never
+// touches. `config` is NOT here: `git config a b` writes with no flag to give it away.
+const GIT_READ_ONLY = new Set([
+  'status', 'log', 'diff', 'show', 'branch', 'remote', 'rev-parse', 'ls-files',
+  'describe', 'blame', 'shortlog', 'fetch', 'cat-file', 'ls-remote',
+]);
+
+function isReadOnly(command) {
+  if (typeof command !== 'string' || !command.trim()) return false;
+  // Redirection writes, and a backtick or $( ) can hide any writer at all inside a segment
+  // whose first word looks harmless. Neither is worth parsing; bail on both.
+  if (/[>`]|\$\(|<\(/.test(command)) return false;
+
+  for (const seg of command.split(/\|\||&&|[|;&\n\r]/)) {
+    const parts = seg.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) continue;
+
+    // Skip a leading env assignment: FOO=bar cmd ...
+    let i = 0;
+    while (i < parts.length && /^[A-Za-z_]\w*=/.test(parts[i])) i++;
+    if (i >= parts.length) continue;
+
+    const cmd = parts[i].replace(/\.exe$/i, '').split(/[\/]/).pop();
+    if (cmd === 'git') {
+      // Global options come before the subcommand, and -C takes a directory argument.
+      let j = i + 1;
+      while (j < parts.length && (parts[j].startsWith('-') || parts[j - 1] === '-C')) j++;
+      if (!GIT_READ_ONLY.has(parts[j])) return false;
+      if (parts.some((p) => p.startsWith('--output'))) return false;
+      continue;
+    }
+    if (!READ_ONLY.has(cmd)) return false;
+  }
+  return true;
+}
+
+if (shellCwd && isReadOnly(toolInput.command)) bail();
+
 // Walk up for the repo root. A worktree has .git as a file, not a directory, so test
 // for existence rather than for a directory.
 function repoRoot(start) {

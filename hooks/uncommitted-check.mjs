@@ -15,7 +15,8 @@
 //
 // Mechanism: uses the repo list that track-edits.mjs recorded for this session, so it
 // only ever asks about repos this session actually wrote to. Blocks once, with the file
-// list and the exact commands. Never blocks twice, so a session can always finish.
+// list and the exact commands. Consumes that list on the way out, so an answered nudge
+// never repeats; work written after it is recorded again and still blocks.
 
 import { readFileSync, existsSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -34,6 +35,12 @@ try { input = JSON.parse(readFileSync(0, 'utf8')) || {}; } catch { bail(); }
 // Already nudged once this stop cycle. One reminder is a reminder, two is a trap: a repo
 // can be dirty for reasons the agent cannot resolve (a gitignored artifact, a conflict,
 // a file a human is editing), and a hook that never lets go would strand the session.
+// Not enough on its own. stop_hook_active covers ONE stop cycle: the model answers the
+// block, stops again, and this suppresses that second stop. It is false again the moment
+// the next message arrives, so a long session with work left uncommitted got blocked turn
+// after turn. Measured 2026-09-07 across 25 transcripts: 176 blocks over 15 sessions, 47
+// and 46 in the two worst, which is exactly the trap the paragraph above says this avoids.
+// The real guard is consuming listPath before the block at the bottom of this file.
 if (input.stop_hook_active) bail();
 
 const sessionId = String(input.session_id || '').replace(/[^\w-]/g, '');
@@ -162,8 +169,19 @@ lines.push('    Do not commit changes you did not make and do not understand.');
 lines.push('');
 lines.push('Scan the diff for secrets before you commit. Never commit a token or a key.');
 lines.push('');
-lines.push('This fires once. Finishing without acting is allowed, but then say in your reply');
+lines.push('This will not repeat for the work listed above. Finishing without acting is');
+lines.push('allowed, but then say in your reply');
 lines.push('what you left uncommitted and why, so it is a decision on the record.');
+
+// Clear the file before blocking. Without this the line above is a lie: a session that keeps
+// working after the nudge and stops again with stop_hook_active false gets the identical
+// block, turn after turn. queue-loop-check.mjs does exactly this one line before its own
+// block, for exactly this reason; review-check.mjs and session-close-check.mjs use a .fired
+// marker for the same promise. This hook was the one that never got the fix.
+//
+// track-edits.mjs rebuilds this file whenever the session writes again, so genuinely NEW
+// work after the nudge is still flagged. Only the repeat of an answered nudge stops here.
+try { rmSync(listPath, { force: true }); } catch { /* fine */ }
 
 process.stderr.write(lines.join('\n') + '\n');
 process.exit(2);

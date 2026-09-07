@@ -81,6 +81,23 @@ const unreviewed = new Set();
 // reviewing: agents run in the background by default, so the tool_use block lands in the
 // transcript the instant it is sent, and crediting that would let a session fire off a
 // reviewer and finish in the same breath with nothing having been read.
+// A denied or failed tool call still leaves a tool_use block in the transcript. Counting
+// one as a write invents work that never happened: on 2026-09-07 two Edits to a file under
+// ~/.claude/hooks were refused by the permission classifier, the file stayed byte-identical
+// on disk, and this hook demanded a cold review for it anyway. The verdict lives on the RESULT,
+// which arrives after the call, so collect the failures in their own pass first.
+const failed = new Set();
+for (const line of lines) {
+  if (!line) continue;
+  let entry;
+  try { entry = JSON.parse(line); } catch { continue; }
+  const c = entry && entry.message && entry.message.content;
+  if (!Array.isArray(c)) continue;
+  for (const b of c) {
+    if (b && b.type === 'tool_result' && b.is_error && b.tool_use_id) failed.add(b.tool_use_id);
+  }
+}
+
 const inFlight = new Map();
 
 for (const line of lines) {
@@ -112,6 +129,8 @@ for (const line of lines) {
     }
 
     if (block.type !== 'tool_use') continue;
+    // The call was refused or errored. Nothing was written and no agent ran.
+    if (failed.has(block.id)) continue;
 
     // ponytail: any Agent dispatch counts, including one sent to search a codebase. Treating
     // an unrelated fan-out as a review is the known false negative. Reading the dispatch

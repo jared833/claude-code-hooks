@@ -200,15 +200,33 @@ node hooks/deploy-recheck.test.mjs
 ### uncommitted-check (Stop)
 
 When a session tries to end, this blocks once if work the session wrote is uncommitted (or
-committed but never pushed), listing the files and the exact commands to save them. It blocks a
-single time and then always lets the session finish, so it can nudge but never trap you. It
-reads the list that `track-edits` builds, so it only reports what this session touched, not
-whatever else happens to be dirty in the repo.
+committed but never pushed), listing the files and the exact commands to save them. It reads the
+list that `track-edits` builds, so it only reports what this session touched, not whatever else
+happens to be dirty in the repo.
+
+"Once" is the hard part, and for six weeks this hook did not deliver it. The guard was the
+`stop_hook_active` flag, which sounds like "you already fired this session" and means "you
+already fired in this stop cycle": it goes false again the moment the next message arrives.
+Measured over 25 real transcripts, the hook had fired 176 times across 15 sessions, 47 times in
+the worst one. The fix is to consume the session's list on the way out, one line, and three sibling
+hooks here already kept the same promise, two of them with a `.fired` marker instead. New work written after the nudge is recorded again and still
+blocks, so the guarantee is once per batch of work rather than once per session.
+
+Both this hook and `tdd-gate` used to count a `Write` or `Edit` the permission layer had
+**refused** as a completed write, because a refused call still leaves a `tool_use` block in the
+transcript and the verdict only arrives later, on the result. A denied edit therefore invented a
+review demand and a test demand for a file that never changed on disk. Both now collect the ids
+whose `tool_result` came back with `is_error` and skip them, which also closes two quieter
+holes: a failed agent dispatch no longer clears the pending review, and a denied edit to a test
+file no longer counts as having written a test.
 
 ### track-edits (PostToolUse)
 
 After an edit or a shell command, this records the repo the file or command lived in, into a
-per-session list in your temp directory. It never blocks and never fails loudly. On its own it
+per-session list in your temp directory. It never blocks and never fails loudly. A shell command
+that cannot have written anything is skipped, because otherwise a `git status` run inside a repo
+arms the nudge exactly as a build would; that list is an allowlist and anything unrecognised
+still records, since a miss here loses real work while a false alarm costs one wasted nudge. On its own it
 does nothing you would notice; it is the memory that makes `uncommitted-check` specific instead
 of nagging about every dirty file in the repo.
 
