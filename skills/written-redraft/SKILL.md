@@ -22,8 +22,16 @@ looking for other work to do.
 
 1. **Fetch buildlog's origin first.** `git -C <HOME>\projects\buildlog fetch origin && git -C <HOME>\projects\buildlog checkout main && git -C <HOME>\projects\buildlog pull --rebase`. A stale checkout means rewriting a version of the file that already changed underneath it.
 
-2. **Find every `status: redraft` file** in `buildlog/src/content/newsletters/` and
-   `buildlog/src/content/posts/`. If there are none, report that and stop, nothing to do.
+2. **Find every `status: redraft` file** in `buildlog/src/content/newsletters/`,
+   `buildlog/src/content/posts/` and `buildlog/community/` (The Back Office daily Skool posts,
+   added 2026-09-12). If there are none, report that and stop, nothing to do.
+
+   **A community post follows different standards from step 3.** Read
+   `buildlog/community/_template.md` instead of `voice.mjs`'s sales voice and
+   `content-pillars.md`: bar voice, 400 to 800 words, the four-part shape, Skool formatting (no
+   bold, no headings), and the Wednesday `source` rule. A rewrite that drops below 400 words,
+   or adds a member question no source records, goes back at `status: redraft` with the reason
+   in the scoreboard instead of going out as a draft.
 
 3. **Read the standards before rewriting anything**, same as `/post-week` does at drafting time:
    - `buildlog/scripts/voice.mjs` - the sales voice (short declarative sentences, concrete
