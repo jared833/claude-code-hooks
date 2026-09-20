@@ -67,12 +67,18 @@ starting topics, and treat that week as the baseline.
   thin to say, do not say it: choose from the ring definitions and mark the pick "untested".
 - Broad slots must satisfy the ring 3 ceiling. Check each against the rings, out loud.
 - Pull candidates from the Notion Content Bank (menu, never drains). Read it through the
-  Notion connector, filter to rows that fit a slot. **Never write to it**: no `Made on`, no
-  `Platform`, no `Stage`, no marking anything used. An idea not chosen this week is untouched.
+  Notion connector, filter to rows that fit a slot. **Never edit an existing row**: no `Made
+  on`, no `Platform`, no `Stage`, no marking anything used. An idea not chosen this week is
+  untouched. The one write allowed is ADDING a row for a slot that has no bank row (Step 3.5).
+- Prefer a `Stage: Worked up` row for every slot. It already carries the spoken script and shot
+  list, so the slot needs no further vetting. Open the row body to confirm it has a `**Script.**`
+  section before you count it as worked up; a `Stage` value alone is not evidence.
 - Never touch footage, `bank.py`, `cuts.py`, ffmpeg, `post.json` or an EDL. This plans topics,
   it does not cut.
 - If a slot needs footage that cannot be filmed at a desk, note it as a pickup for Jared in
-  the plan body. Do not create Notion rows for it.
+  the plan body. Do not create Notion rows for the pickup itself.
+- **When Jared changes a slot in chat, write the change into the plan file in the same turn.**
+  The plan file is the only record of the week. An edit that lives in chat is recorded nowhere.
 
 ## Step 3: write the plan
 
@@ -86,9 +92,9 @@ Use this shape, plain prose, no dashes as punctuation:
 Last week: <sample sizes, views by bucket, follower change or "not available">. <one or two
 honest sentences on what it does and does not show>.
 
-| # | Bucket | Topic | Angle in one line | Source |
-|---|--------|-------|-------------------|--------|
-| 1 | broad | ... | ... | Content Bank row title or "new" |
+| # | Bucket | Topic | Angle in one line | Bank row id |
+|---|--------|-------|-------------------|-------------|
+| 1 | broad | ... | ... | Notion page id of the Content Bank row |
 ... seven rows, 2 broad, 4 narrow, 1 chaos ...
 
 Pickups for Jared: <footage that needs a real camera, or "none">
@@ -96,12 +102,31 @@ Untested picks: <which rows had no data behind them>
 ```
 
 Every row's topic is a short slug that can go in `topic` on the video record. Keep it
-consistent week to week for the same subject, since the scheduler spaces posts on it.
+consistent week to week for the same subject, since the scheduler spaces posts on it. The topic
+slug must describe the ROW, not a past topic it resembles: history under a similar-sounding slug
+does not transfer to a different idea.
+
+The last column is the bank row's Notion page id, never a title. `/vid-batch` reads it as the
+`bank_page_id` so `Made on` can be recorded once the post ships. Every slot gets one.
+
+## Step 3.5: every slot must have a worked-up bank row
+
+For each of the seven slots:
+
+- Row exists and its body has a `**Script.**` section: nothing to do, record its id.
+- Row exists but is Raw or has no script: hand that row to `/idea-vet`, scoped to it alone.
+- No row (Jared's own idea, or a chaos slot with no match): ADD one with `notion-create-pages`
+  (`Draft` phrased the way he would type it, `icon: "🤖"`, `Stage` blank, a body line naming the
+  week and slot), then run `/idea-vet` scoped to that one row and pass "only this row, do not
+  touch any other Raw row" in its arguments. Record the new row's id.
+
+Adding rows is the only write this skill makes to the bank. A worked-up row that is not used this
+week stays where it is.
 
 ## Step 4: tell Jared
 
-Two or three lines: the seven topics by bucket, anything flagged, where the file is. Depth
-lives in the file.
+Two or three lines: the seven topics by bucket, anything flagged, which rows were added or
+vetted this run, where the file is. Depth lives in the file.
 
 ## Rules
 
