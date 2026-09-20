@@ -1,8 +1,8 @@
 # Skills
 
-Fourteen [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Thirteen
+Fifteen [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Fourteen
 of them are the real production workflows, running unedited except where a private id or a business
-specific had to come out. The fourteenth is a template.
+specific had to come out. The fifteenth is a template.
 
 None of these will run as-is against your accounts. They name a Notion database you do not have,
 a local review app that is not published, a Buffer channel that is not yours. That is on purpose
@@ -22,6 +22,7 @@ refuses to do, and the note explaining why a previous version was wrong.
 | [`post-week/`](post-week/) | Drafts, reviews and queues a week of written content in one sitting |
 | [`idea-vet/`](idea-vet/) | Turns raw captured ideas into a shootable menu, with a full script per item |
 | [`bank/`](bank/) | Drains a queue of podcast and video links into a searchable methods library, distilling each transcript into plays in the same run |
+| [`week-plan/`](week-plan/) | Plans the week's new shoots as 2 broad, 4 narrow and 1 chaos video from last week's views by bucket. Planner only, never touches footage |
 | [`vid-batch/`](vid-batch/) | Cuts a shoot into finished captioned vertical videos, registers them for review, pushes the approved ones |
 | [`written-redraft/`](written-redraft/) | Rewrites drafts that came back with feedback, then puts them back for re-approval |
 | [`x-engage/`](x-engage/) | A social engagement session that drafts in the owner's voice and hands off. Review happens in a local app that is not published here |

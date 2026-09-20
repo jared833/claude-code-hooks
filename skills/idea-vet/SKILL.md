@@ -141,6 +141,12 @@ rather than guessing what they mean.
 - **No** - one line, the reason.
 - **Yes** - two lines max: what the series is, and what else could be in it.
 
+**Bucket.** (added 2026-09-19, for `/week-plan`) One word, `broad`, `narrow` or `chaos`, then one
+line why, measured against the rings in `~/.claude/skills/week-plan/SKILL.md` (audience: small
+businesses and solo operators). `narrow` is ring 1 or 2, `broad` is ring 3, and an idea that only
+fits ring 4 or 5 is `chaos` at best. This is a suggestion inside the body: never a Notion property,
+and `/week-plan` may overrule it.
+
 **Video.** Every row gets one. Instagram Reels is the baseline, and the same cut mirrors to TikTok
 unchanged, so there is still exactly one script per row (Jared, 2026-08-13: "there will be a video
 done on each row"; YouTube killed 2026-08-15, TikTok killed then and back 2026-08-17 as a mirror,
@@ -241,6 +247,17 @@ to derive anything from as of 2026-07-28. Revisit at roughly 20 posts with metri
 
 ## Rules
 
+- **Read the context bank before you write, and name what you read.** `<HOME>\projects\context-bank\INDEX.md`
+  is a one-screen table; open the ONE playbook that matches the job (`attention.md` for hooks,
+  `storycraft.md` for writing one beat once the script has a real anecdote in it,
+  and openings, `story.md` for narrative shape, `offers.md` for anything that sells, plus
+  `editing.md` and `hooks.md` for video craft). Every play in there carries the result that
+  earned it, which is the point: follow a method somebody proved rather than one that sounds
+  right. Say in your output which playbook you loaded. That line is the only evidence the bank
+  is being read, and an unread bank is worse than no bank because it looks like a safeguard.
+  Never open anything under `context-bank\raw\`: one transcript is roughly 25K tokens and a
+  hook blocks it. When a play is not enough, run
+  `python <HOME>\projects\context-bank\cb.py search "<phrase from the play's Source anchor>"`.
 - **Cheap formats are a real recommendation, not a consolation.** Carousels, screen
   recordings, screenshots and plain text posts all count, and recommending one is often
   the right call (his note, 2026-07-26: not everything needs to be a talking head). Reach for

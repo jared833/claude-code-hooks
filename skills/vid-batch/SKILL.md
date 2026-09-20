@@ -15,63 +15,155 @@ pass. Only the nightly sweep runs step 0: it passes `reconcile`, every other tri
 Working directory is `<HOME>\Desktop\Social Content`. **Read its `CLAUDE.md`
 first.** It is the contract for this folder and everything below assumes it.
 
-## You are the ORCHESTRATOR and the REVIEWER. You do not cut.
+## You are the ORCHESTRATOR. You do not cut. You dispatch and you review.
 
-Jared's call, 2026-07-29, and it is permanent: **"You're new role forever and always will
-be orchestrator. You will shift from video editor to video reviewer."**
+Jared's call, 2026-07-29, permanent: **"You're new role forever and always will be
+orchestrator. You will shift from video editor to video reviewer."** The session running
+`/vid-batch` sends each shoot to a cutting agent and then judges the RENDER against a bar
+before Jared ever sees it. It never writes an EDL itself, for the same reason the
+independent-review rule exists for code: whoever made the cut cannot see what is wrong with
+it.
 
-The session that runs this skill dispatches the cutting to agents and then judges what comes
-back. It never writes an EDL itself. That is not a style preference, it is the only way the
-quality check exists at all: a session that made the cut cannot catch what is wrong with the
-cut, for the same reason the independent-review rule exists for code. Doing both is what
-produced the batch he rejected on 2026-07-29, where `composeo-tool` was ONE EDL row across
-73 seconds and `ponytail-tokens` was one row across 42. One row means nothing was removed
-from the middle. Every false start, every stall and every silence he left in was still
-there, and it shipped to his review page as a finished draft.
+**Reverted 2026-08-29.** A five-stage assembly line (separate assembly, vision, cut, copy,
+b-roll and review agents per post, with up to 3 fix-and-re-review rounds) ran 2026-08-27 to
+2026-08-29. Jared's read after the second batch: it chews through tokens and does not cut
+better. The real quality gain from that period was in the code, not the org chart: `small.en`
+transcription (proper-noun priming was tried and DELETED 2026-08-28 after it fabricated a number), RECASE,
+the ASR_REV cache stamp, `_check_numbers`, `cuts.py edges`/`disfluent`, and `_glue_fragments`.
+All of that stays, it lives in `pipeline.py`/`bank.py`/`cuts.py` and nothing here touches it.
+What is gone is spending five-plus agent dispatches (each paying its own ~80-90K context
+floor) to produce what one dispatch plus your own review produced just as well before.
 
-His words: *"I'm noticing a lot of dead space and you're not cutting out portions where I
-start and abruptly stop, or unnatural periods when I'm silent. We're not reviewing these for
-quality like we should and that's partly because you're doing all of the work."*
+### The line
 
-**How a pass runs now:**
+```
+1. YOU    find the material, group it into posts, write one brief per post
+2. CUT    one agent per shoot -> full post.json (edl, cutaways, fixes, hooks, overlay,
+          descriptions, topic), renders, self-checks lint
+3. YOU    watch every render against the bar below, run cuts.py lint and proof yourself
+   |  FAIL -> send the specific defects back to the SAME cut agent -> back to 3
+4. YOU    register, push, file, report
+```
 
-1. You do the accounting, the reconciling, the pushing and the filing. Steps 0, 1, 8 and
-   everything after.
-2. For each shoot to cut, dispatch a CUTTING AGENT. One agent per shoot, in parallel when
-   there are several. Its whole job is steps 2 to 6: read the clips, group them, measure the
-   boundaries, write `post.json`, render, and hand back the slug plus what it dropped.
-3. **You then REVIEW the render against the bar below.** Watch the output, do not read the
-   JSON and call it reviewed. A cut that fails goes BACK to the agent with the specific
-   defect named. It does not go to Jared.
-4. Only what passes your review gets registered at step 7.
+One cutting agent per shoot, not per post and not per discipline. It writes the whole
+`post.json`, EDL and copy alike, because a locked-off talking-head take does not need a
+separate specialist watching for banner wording. **The dispatch prompt lives in
+`agents/cut.md`.** Hand it over VERBATIM as the body of the dispatch, then add the
+job-specific brief underneath it. A rule written into a file today does not reach an agent
+spawned today, and the dispatch prompt is the only channel proven to reach a running agent.
 
-A dispatch prompt is the entire interface and the agent starts cold. Hand it: the shoot
-slug, the working directory, the instruction to read `Social Content/CLAUDE.md` first, the
-never-cut-on-whisper-timestamps rule, the quality bar below, and the note Jared left on the
-shoot. **Put the bar in the prompt verbatim.** A rule written into this file today does not
-reach an agent you spawn today; only the dispatch prompt does.
+### Step 1 is still yours: find the material and write the brief
 
-### The bar. Reject and send back on any of these.
+**Watch the raw footage**, or at minimum its transcript and beat list from `bank.py`. This is
+the one place in the pass where a judgement about what is actually interesting has to happen,
+and it is why the orchestrator exists at all. Then write a brief per post:
 
-- **A row longer than about 25 seconds with no internal cut.** A long row is the tell that
-  nothing was removed from the middle. Real speech has stalls in it and they come out.
-- **A false start.** He begins a sentence, stops, and begins it again. Keep the good one.
-- **Dead air over about 0.6s** that is not a deliberate beat before a punchline.
-- **A beat stated twice** inside one cut.
-- **An ending that is not a complete thought**, or a last frame with his mouth open.
-- **A cut that would be better as part of another cut.** Three posts that each name one item
-  of a five-item list are three weak posts and one good one. He said so directly about the
-  free-tools batch: *"those all need to be one video."* When one take tells a whole story
-  end to end, that take is the spine and the others are material to pull from.
+- **What the post is about**, in one sentence. If you cannot write that sentence, it is not
+  a post yet.
+- **Which beats belong in it**, by timecode, in order, naming the spine.
+- **Which beats are deliberately excluded and why.**
+- **Roughly how long**, as a range. Length comes from the material, and a short cut that
+  works beats a long one that does not.
+- **What already-scheduled posts hold**, so a beat that resolves a thought is not claimed
+  twice.
 
-Say what failed and let the agent fix it. Do not fix it yourself, and never wave one through
-because the batch is thin. A thin batch he trusts beats a full one he has to police.
+Read `<HOME>/projects/context-bank/playbooks/editing.md` and `<HOME>/projects/context-bank/playbooks/hooks.md` before you write any of this. They are
+regenerated weekly from what is actually working, and the brief is where that research is
+supposed to change a decision.
+
+**Read this week's 3-2-1 plan if there is one** (added 2026-09-19): the top section of
+`<HOME>/projects/aide-data/memory/week-plan.md`, written by `/week-plan`. It names the
+week's 7 slots as broad (2), narrow (4) or chaos (1), each with a topic. When a post fills
+a slot, carry that slot's `bucket` into step 7. A post that fits no slot gets no bucket (send
+nothing); never invent one to make the counts work, and never let the plan pull a beat into a
+post it does not belong in. The plan steers which subjects get cut, it does not override the
+one-cut-per-subject rule below. If the file is missing or the newest section is older than
+9 days, skip this and cut as before.
+
+**One cut per subject.** Three posts that each name one item of a five-item list are three
+weak posts and one good one. He said so directly: *"those all need to be one video."* When one
+take tells a whole story end to end, that take is the spine and the others are material.
 
 **Try things.** Jared, 2026-07-29: *"do not be afraid to try different formats, styles, cuts,
-etc in our editing."* Rotating presets is the floor, not the ceiling. A cold open on the
-sharpest line, a hard cut montage of one repeated phrase, a 12 second single claim, a
-screenshot held over the number it proves: all of these are yours to try. The bar above is
-about defects, never about ambition.
+etc in our editing."* A cold open on the sharpest line, a hard cut montage of one repeated
+phrase, a 12 second single claim, a screenshot held over the number it proves. Ambition is
+yours to spend here, at the brief, where it costs one paragraph instead of a re-cut.
+
+### Step 2: dispatch the cut agent
+
+The cut agent owns everything in `post.json`, EDL and copy alike. It renders and runs
+`cuts.py lint` itself. It does not need to hold a render open for you to write copy into
+later, so there is no mtime-staleness trap to check for: the same agent that wrote `overlay`
+is the one that rendered it.
+
+### Step 3: you review, yourself, against the bar
+
+No separate review agent. Watch the render (`cuts.py proof <slug>`), read the lint
+(`cuts.py lint <slug>`), and check the same bar the old review stage used:
+
+- **No row over about 25s with no internal cut.**
+- **No false start or dead air over about 0.6s** that is not a deliberate beat before a
+  punchline.
+- **No beat stated twice** inside one cut.
+- **The ending is a complete thought AND a settled frame.**
+- **Not choppy.** Several joins close together read worse than the dead air they removed.
+- **No fabricated number, quote or experience** in the hooks, overlay or caption.
+- **`overlay` matches the render.** It is the same agent's job now, so this should not drift,
+  but check it once before registering anyway.
+
+**A fix goes back to the SAME cut agent, then you look again before registering.** A cut
+note asserting a fix is not evidence of a fix. If a defect survives two rounds, register it
+anyway with the defect named plainly in `cut_note`, or drop it from the batch, and say which
+in the scoreboard. Do not chase a third round on the same defect.
+
+### Run the lint. It is not optional and it outranks the cut note.
+
+```
+python cuts.py lint <slug>
+```
+
+Added 2026-08-23, after Jared rejected an entire 7-post queue: *"the edits are all over the
+place, the story lines are all over the place and don't flow well, there are retries every
+where, trailing sentences. We also need to figure out to get you to review these more
+thoroughly."* Every defect he named was in `post.json` in plain numbers and nothing read them.
+
+It reports `microrow`, `longrow`, `deadair`, `clipped`, `shrapnel`, `repeat` and `trailing`,
+exits 1 on any finding, and `bank.py post` runs it after every render so nobody has to
+remember it. **A finding is a defect until an agent names it and defends it in `cut` as
+deliberate.** It is the floor under watching the render, never a substitute for it.
+
+**`cuts.py tighten` is banned on a talking-head take**, and that sentence goes in the cut
+agent's dispatch. It splits a row at every interior pause, so a 5 minute riff came back as 47
+rows with 19 pairs of consecutive rows carrying the same sentence. That is a machine-gun of
+jump cuts inside individual sentences on a locked-off shot, and it is what produced the batch
+he rejected whole.
+
+### The context-bank playbooks, and when to regenerate them
+
+`<HOME>/projects/context-bank/playbooks/editing.md` and `hooks.md` are the research the cut agent reads
+before it works: what is actually holding retention, what hooks are landing, what his own
+numbers say.
+
+**Check the `checked:` date on line 2 of each at the start of every pass. Over 7 days old,
+dispatch the matching research agent** (`agents/research-editing.md`, `agents/research-hooks.md`) before writing
+the brief, and use the refreshed file. Both regenerate in parallel and neither blocks the
+other.
+
+```
+python <HOME>/projects/context-bank/cb.py stale
+```
+
+`checked:` rather than mtime: the bank is a git repo, and a clone or a checkout stamps every
+file with the current time, which would report a two-year-old playbook as fresh.
+
+This is deliberately not a cron. A weekly scheduled job regenerates research nobody reads
+during a week with no shoot, and misses a refresh in a week with three. The pass is when the
+file is about to be used, so the pass is when it is worth paying for.
+
+**They are overwritten, never appended.** A research file that only grows stops being a
+decision aid and becomes an archive, and an agent reading an archive picks whichever line it
+likes. Each regeneration must also report what it CONTRADICTS in the previous version, and a
+contradiction of a number written into this skill is a correction to make in the same pass.
 
 ## Why this exists
 
@@ -162,14 +254,21 @@ correct one was 6. See the budget section below, which is why this matters.
 For each row still in scope, read `buffer_post_ids` (a map of service to Buffer post id) and
 call `mcp__claude_ai_Buffer__get_post` on each id. Then:
 
-- **Mark it published off the Instagram id** (`instagram` or `reels`), with `{"slug":"...",
-  "publishedAt":"<its sent time, iso>"}`. That is what moves the row to published and starts the
-  streak. **Never off `story`, and never off `tiktok` alone.** "Any id that sent" was the rule
-  while a row held one id; with a mirror plus a Story it would mark a row published when the reel
-  was rejected and only the Story or only TikTok went out, and `published_at` is COALESCE'd, so
-  that wrong answer is permanent. If the Instagram id sent but TikTok did not, the row is still
-  published; say so in the scoreboard, because step 0.75 cannot mirror a post that is already
-  out.
+- **Mark it published off the Instagram id** (`instagram` or `reels`) by calling
+  `POST http://localhost:3220/api/video/push`, NOT `POST /api/video` — that is a different
+  route (`src/pages/api/video/push.js`, `recordVideoPush`) and it is the only one that touches
+  `published_at`/`status`/`metrics_json` without also resetting `cut_note`, `chosen_hook`,
+  `decided_at` and `planned_for` to null and flipping status back to `pending`. Calling
+  `POST /api/video` with a `publishedAt` field silently does nothing with it (that route's
+  `upsertVideoPost` doesn't even read that key) and instead re-registers the row as a fresh
+  render, which is exactly the corruption a 2026-08-26 pass caused and had to repair via a
+  direct SQLite fix. Body: `{"slug":"...", "publishedAt":"<its sent time, iso>"}`. That is
+  what moves the row to published and starts the streak. **Never off `story`, and never off
+  `tiktok` alone.** "Any id that sent" was the rule while a row held one id; with a mirror plus
+  a Story it would mark a row published when the reel was rejected and only the Story or only
+  TikTok went out, and `published_at` is COALESCE'd, so that wrong answer is permanent. If the
+  Instagram id sent but TikTok did not, the row is still published; say so in the scoreboard,
+  because step 0.75 cannot mirror a post that is already out.
 - If Buffer reports view counts, send them in the same call as
   `{"metrics":{"views":<n>}}`. That is the only thing that ever feeds the style board. **With
   TikTok mirroring Instagram since 2026-08-17 a row has two POSTING channels, so send the SUM of
@@ -193,11 +292,12 @@ nothing in the logs explaining it.
 **Do it with ONE `list_posts`, `includeMetrics: true`, `status:["sent"]`, `dueAt` filtered to
 the last 7 days. Never `get_post` per id.** This used to say "with `includeMetrics: true` on
 that pass" and left the call shape unstated, which is the difference between the pass fitting
-in the budget and breaking it: 7 days of the current cadence is 6 videos a day at 3 ids each
-(reel, TikTok mirror, Story) plus 2 decks at 2, so per-id reads are about 154 calls and breach
-the 100 per 15 minutes cap on their own before a single push happens. The 119 this used to say
-was computed at 3 videos a day; `VIDEO_PER_DAY` is 6 as of 2026-08-17
-(`engage/src/lib/schedule.js`), so re-derive it rather than trusting the number here. The one `list_posts` is 1 call and returns the same numbers.
+in the budget and breaking it: 7 days of the current cadence is 8 videos a day at 3 ids each
+(reel, TikTok mirror, Story) plus 2 decks at 2, so per-id reads are about 196 calls and breach
+the 100 per 15 minutes cap twice over before a single push happens. The 154 this used to say
+was computed at 6 videos a day and the 119 before that at 3; `VIDEO_PER_DAY` is 8 as of
+2026-08-23 (`engage/src/lib/schedule.js`), so re-derive it rather than trusting the number
+here. The one `list_posts` is 1 call and returns the same numbers.
 Caught 2026-07-29 by a review of the carousel fan-out arithmetic.
 
 ### 0.5. Check Buffer for posts engage never recorded
@@ -305,7 +405,9 @@ Budget the pass before you spend it:
 reconcile plus channels, and a 6-deck batch is 12, and running that against a nearly spent daily allowance means some posts go out
 and some silently do not, which is worse than deferring the whole batch. If the pass would
 need more calls than are comfortably left, push what fits, leave the rest APPROVED so the next
-pass picks them up, and say so in the scoreboard. An approved row waiting a day is a
+pass picks them up, and say so in the scoreboard. **Release the claims on the ones you are not
+shipping** (step 8), or the next pass waits out a 30 minute TTL to get rows you already decided
+to leave it. An approved row waiting a day is a
 non-event. A half-pushed batch is a real mess to untangle, because `POST /api/video/push` has
 already moved some rows and not others.
 
@@ -314,6 +416,23 @@ the same cap, so a heavy weekend drafting session and a big video batch on the s
 one 250 call budget between them.
 
 ## Steps
+
+**Who owns each of these.** One cutting agent does the craft steps end to end; you find the
+material, write the brief, review the finished render, and handle everything from
+registration on:
+
+| Step | Owner |
+|---|---|
+| 1. Find the material | You |
+| 2. Group into posts, write the brief | You |
+| 3. Length | The brief sets a range, the CUT agent answers to the material |
+| 4. Pick a preset | You in the brief, CUT agent may argue in its report |
+| 5. Write post.json: everything (`edl`, `cutaways`, `fixes`, `preset`, `out`, `cut`, `hooks`, `overlay`, `descriptions`, `topic`) | CUT agent |
+| 6. Render and check | CUT agent renders and self-checks lint, you watch it and review against the bar |
+| 7. Register | You |
+| 7.5. Re-cut a redraft | You write the brief, CUT agent does it |
+| 7.6. Repurpose | You pick, CUT agent writes the new hook and cuts the variant |
+| 8 and after | You |
 
 ### 1. Find the material
 
@@ -417,12 +536,12 @@ metric that decides it.
 - **None of this licenses padding.** Every rule above still holds: one beat once, cut what
   repeats, and the rejected minute-long cut stays rejected because it repeated itself, not
   because of its length. A long cut earns its length beat by beat or it gets shorter.
-- **One counter-signal is on the record and it did not change the decision.** Read off
-  the platform API across a full back catalogue, the longest cuts took almost no views and
-  every strong performer was short. Its confound was found the same day and removed: the dead
-  posts sorted by POSTING SLOT, not by length, and the two worst slots were dropped from the
-  schedule. Do not resurrect this as a reason to cut short. It is here so that nobody
-  rediscovers it in three weeks and reads it as new.
+- **One counter-signal is on the record and it did not change the decision.** Read off the
+  YouTube Data API 2026-07-30, all 15 videos: the four longest (41s to 47s) took 8, 0, 0 and 2
+  views, and every video over 500 views ran 15 to 25 seconds. Its confound was found the same
+  day and removed: the dead posts sort by POSTING SLOT, not by length, and the two slots that
+  never cleared 3 views are gone from `VIDEO_SLOTS_ET`. Do not resurrect this as a reason to cut
+  short. It is here so that nobody rediscovers it in three weeks and reads it as new.
 - **The studies above measured channels other than the one they are applied to.** The
   Socialinsider band is TikTok, which he posts to again as of 2026-08-17, so that one is no
   longer borrowed; the Galloway study is Shorts and the counter-signal is YouTube, both dead.
@@ -592,25 +711,38 @@ the actual goal: the list is the asset, the course is the doorway. Never stack b
 string itself comes from `aide-data/memory/conventions.md`.
 
 Two rules added 2026-07-29 from the short-form reach research, because all 38 posts shipped
-between June and July 2026 carried no search phrase and no question on any platform. The
-comment and like figures below come from the Metricool 2026 TikTok study and are applied to
-Reels by analogy, so treat the direction as sound and the size as TikTok's. Each rule is a
-text edit and costs no footage. **No hashtags (Jared's call, 2026-08-09).**
+between June and July 2026 carried no search phrase and no question on any platform. Each
+rule is a text edit and costs no footage. **The numbers below were re-sourced 2026-08-27
+against Metricool's 2026 INSTAGRAM study (24,364,803 posts, 375,118 accounts) and two of them
+changed**, so the old TikTok-by-analogy figures are gone. Current numbers live in
+`playbooks/hooks.md` in the context bank, regenerated weekly; these are the ones a rule depends on.
 
 - **One search phrase per post.** The phrase a stranger would type: "claude code hooks",
-  "claude code for beginners", "ai coding without coding". Say it out loud in the cut when the
-  take already contains it, never redub to force it. Instagram ranks caption text, on-screen
-  text and spoken words in search.
-- **A question in the last sentence before the CTA.** The CTA still closes the text. A question
-  draws about 26% more comments across 2.3M accounts. Never ask for a like: asking cuts
-  engagement about 60%.
+  "claude code for beginners", "ai coding without coding". **It has to be SPOKEN, not only
+  written.** Instagram transcribes Reel audio and reads caption text; that it reads burned-in
+  on-screen text is claimed by publisher guides and **not confirmed by Meta**, so the banner
+  can never be the only place the phrase appears. Say it out loud when the take already
+  contains it, never redub to force it.
+- **A question in the last sentence before the CTA.** A question in the caption drew 36.70%
+  more comments, and a comment-focused CTA 202.78% more.
+- **Prefer a send or a comment to a like.** Sends per reach is one of the strongest ranking
+  signals. **The old line here said asking for a like cuts engagement about 60%; no source
+  supports that and it has been removed.** There is no evidence a like-CTA is penalised, only
+  evidence that sends and comments are worth more. Do not repeat the 60% figure.
+- **No hashtags (Jared's call, 2026-08-09), and it is now backed by numbers**: a post with at
+  least one hashtag got 31.70% fewer views and 33.89% fewer interactions than the platform
+  average in that study.
 
 ### 6. Render and check
 
 ```
-python bank.py post <slug>       renders, marks clips used, links into publish/
+python bank.py post <slug>       renders, marks clips used, links into publish/, lints
 python cuts.py proof <slug>      every join side by side, look at it
+python cuts.py lint <slug>       every defect measurable without watching it
 ```
+
+The lint runs itself at the end of `bank.py post`. Read what it prints. A `deadair` or
+`shrapnel` finding in a draft you are about to register is a send-back, not a note.
 
 On a render failure: push an ntfy alert (below), record what failed, and **continue to the
 next post**. One bad cut must never cost the batch.
@@ -620,15 +752,46 @@ next post**. One bad cut must never cost the batch.
 ```
 POST http://localhost:3220/api/video
 {"slug":"...", "shoot":"...", "preset":"...", "topic":"...", "hooks":[...],
- "descriptions":{...}, "cut_note":"..."}
+ "descriptions":{...}, "cut_note":"...", "bank_page_id":"...", "bucket":"broad|narrow|chaos"}
 ```
+
+**`bucket` is the 3-2-1 plan slot this cut fills.** One of `broad`, `narrow`, `chaos`; any other
+value is a 400. Omit it when the post fills no slot. Sticky like `bank_page_id`, and a hook
+variant inherits its base's bucket when you omit it. It is its own field and never goes in
+`topic`, which the scheduler compares as an exact string.
+
+**`bank_page_id` is the Content Bank row this cut came from, and it is what makes `Made on`
+possible at all.** Omit the field entirely when you do not have one; never send a guess. It
+is stored with a sticky `COALESCE`, so a later register cannot blank an id an earlier one set.
+
+Get it from `shoot.json`'s `note`, which is the direction Jared typed at upload time. If that
+note names a Content Bank row, query the bank for it and send that row's page id. **Match on an
+exact prefix of the row's `Draft` text and refuse on ambiguity.** Two candidate rows means send
+nothing. This is the same anchor test Case 1 uses below, and for the same reason: `Made on` is
+what all three producers dedupe against, so a wrong link silently hides a real idea from every
+one of them. No note, no match, or an ambiguous match all mean the field is omitted, which is
+the honest state and not a failure.
 
 Send `topic` on every register, including a re-cut in step 7.5. It is overwritten and not
 merged, so omitting it on a redraft strips the tag off a post that had one.
 
+**`cut_note` ends with the review state, in one line.** How many rounds it took, and what the
+reviewer re-checked on the last one. `Reviewed: round 2, re-watched the join at 0:07 and the
+ending.` A post registered at the three-round cap with a defect still in it says so here, in
+plain words, rather than being registered quietly.
+
+Nothing enforces this. There is no column for a round count and adding one is an engage schema
+change nobody has asked for, so this is **visibility and not a check**: it puts the answer in
+front of Jared on the page he already reads, where a post claiming one round of review on a cut
+that was rebuilt three times is something he can see. Do not write the line unless it is true.
+A false line here is worse than no line, because it converts an unreviewed post into one that
+looks reviewed.
+
 Start Engage with `npm run dev` in `<HOME>\projects\engage` if `/api/health` is down.
 Re-registering a slug resets it to pending and clears any previous decision, which is
 correct: a re-cut video must never carry the approval given to the version it replaced.
+
+**Every request to Engage needs HTTP Basic auth as of some point before 2026-08-26.** `src/lib/auth.js` plus `src/middleware.js` gate the whole app; a bare request gets `401 auth required`. The password half is `ENGAGE_AUTH_TOKEN` in engage's `.env` (username can be empty). It is `.env` and NOT `.env.local`, which does not exist; checked 2026-08-27 after this line had said `.env.local` for months and a new file copied the error. curl: `curl -u ":$TOKEN" ...`. This applies to every `/api/video*` call in this skill, not just registration.
 
 Then stop. Jared reviews at `http://localhost:3220/video`. Do not push anything he has not
 approved.
@@ -785,9 +948,41 @@ to **skip** and takes all four decisions a cut card takes:
 
 ### 8. Push the approved ones
 
-On the next pass, `GET /api/video?status=approved` and push each approved cut.
+On the next pass, `GET /api/video?status=approved` to see what is waiting.
 
-**Get the times first, once, for the whole batch:**
+**Then claim each one immediately before you push that one. This is not optional.**
+
+```
+POST http://localhost:3220/api/video/claim
+{"slugs": ["<the slug you are about to create_post>"]}
+```
+
+It returns `{claimed:[...]}`. **Push only what comes back in `claimed`.** A slug that does not
+come back belongs to another `/vid-batch` pass that is pushing it right now; leave it alone and
+do not mention it as skipped, it is not yours and it is being handled.
+
+**Claim one at a time, not the whole batch upfront.** A claim expires 30 minutes after it is
+stamped. Claiming ten rows at once stamps all ten at that instant, so if the Buffer pushes take
+longer than half an hour the last few expire while they are still unpushed and another pass can
+claim and duplicate them, which is the exact bug this step exists to prevent.
+
+Why this exists: until 2026-08-31 two overlapping passes both enumerated the same approved
+rows and both called `create_post`, so the same cut shipped twice. It cannot be caught later.
+By the time `POST /api/video/push` runs, Buffer already holds both copies, and refusing the
+record there would only leave the row `approved` for a third pass to push again.
+
+**If you claim rows you then do not push** (you ran out of Buffer budget, a render was bad,
+the batch was cut short), hand them back in the same pass rather than leaving them stuck:
+
+```
+POST http://localhost:3220/api/video/claim
+{"release": ["<each slug you claimed but are not shipping>"]}
+```
+
+A claim expires by itself after 30 minutes, so a pass that dies mid-push does not park a row
+forever. Releasing is the courtesy that makes the next pass immediate instead of delayed.
+
+**Get the times, once, for the whole batch:**
 
 ```
 GET http://localhost:3220/api/video/schedule
@@ -983,11 +1178,19 @@ one of them. Write `Made on` for this case only when the cut renders footage tha
   the shoot folder or the specific filename, not just a description of the topic, the
   same anchor test the bank-gap rows above already use.
 
-**Case 2: a carousel registered with a `bank_page_id`, added 2026-08-18.** `/post-week` picks
-carousels from the Content Bank (its step 3), and as of 2026-08-18 it passes that row's Notion
-page id at registration time (`POST /api/video` `bank_page_id`, its step 5.5) instead of
-writing `Made on` itself, since it cannot observe whether the later Buffer push actually
-succeeds. This closes the gap left when `/post-week` stopped drafting LinkedIn longforms
+**Case 2: ANY row registered with a `bank_page_id`.** Added 2026-08-18 for carousels, widened
+to video 2026-08-31. Both producers pass the originating row's Notion page id at registration
+time (`POST /api/video` `bank_page_id`) instead of writing `Made on` themselves, since neither
+can observe whether the later Buffer push actually succeeds: `/post-week` picks carousels from
+the Content Bank (its step 3, its step 5.5), and `/vid-batch` sends it from step 7 when the
+shoot's note named a bank row.
+
+**This case is not limited to carousels and never was meant to be.** It read "a carousel
+registered with a `bank_page_id`" until 2026-08-31, which meant the one video that ever
+carried a bank id (`2026-08-25-permission`, published 2026-08-27) matched neither case and
+correctly wrote nothing. Measured that day: 280 `video_posts` rows, 20 with a `bank_page_id`,
+19 of them carousels. If a row has a `bank_page_id` and its push succeeded, write `Made on`.
+The format it was made in does not matter. This closes the gap left when `/post-week` stopped drafting LinkedIn longforms
 (it used to write `Made on: LinkedIn` on Buffer confirmation for exactly this case; carousels
 now go through this step instead). Read `bank_page_id` straight off the registered row
 (`GET /api/video`, already how you enumerate what to push). No body-reading or title-matching
