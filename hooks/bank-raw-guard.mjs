@@ -68,8 +68,11 @@ if (tool === 'Read') {
   // Only raw/ and the bank root. Content-grepping an 8KB playbook is CHEAPER than the Read
   // this hook would otherwise push the agent toward, and blocking it strands a session with
   // a refusal message that describes something it did not do.
+  // The bank root only counts when it HAS a raw/: a repo carrying the skill's source under
+  // skills/bank has no transcripts, and blocking it refused a grep of cb.py itself.
   const p = asPath(ti.path || '.');
-  if (String(ti.output_mode || '') === 'content' && (inRaw(p) || BANK_ROOT.test(norm(p))))
+  if (String(ti.output_mode || '') === 'content'
+    && (inRaw(p) || (BANK_ROOT.test(norm(p)) && existsSync(`${p}/raw`))))
     offender = `Grep in ${ti.path || cwd}`;
 } else if (tool === 'Bash' || tool === 'PowerShell') {
   // A heredoc or here-string body is text, not a command. Commit messages, docs and this

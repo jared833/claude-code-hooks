@@ -146,8 +146,10 @@ check('PowerShell here-string quoting the example',
 check('Grep content on the playbooks', grep({ pattern: 'Do:', path: `${BANK}/playbooks`, output_mode: 'content' }), false);
 check('Grep content on one playbook file', grep({ pattern: 'Do:', path: `${BANK}/playbooks/offers.md`, output_mode: 'content' }), false);
 check('Grep content at the bank root is still blocked', grep({ pattern: 'x', path: BANK, output_mode: 'content' }), true);
-check('Grep content at the published bank root is blocked too',
-  grep({ pattern: 'x', path: `${HOME}/.claude/skills/bank`, output_mode: 'content' }), true);
+// The public repo carries the skill's source under skills/bank with no raw/ in it. v4 refused
+// a grep of its own cb.py there, with a message saying a transcript was being read.
+check('Grep content at a bank root with no raw/ is allowed',
+  grep({ pattern: 'x', path: `${HOME}/.claude/skills/bank`, output_mode: 'content' }), false);
 check('a directory merely called bank is not the bank',
   grep({ pattern: 'x', path: `${HOME}/myskills/bank`, output_mode: 'content' }), false);
 
@@ -227,6 +229,8 @@ check('a loop that reads playbooks, after an unrelated ls',
 const ALT = `${HOME}/.claude/skills/bank/raw`;
 mkdirSync(ALT, { recursive: true });
 writeFileSync(`${ALT}/ep.txt`, 'transcript');
+check('Grep content at the published bank root is blocked once raw/ exists',
+  grep({ pattern: 'x', path: `${HOME}/.claude/skills/bank`, output_mode: 'content' }), true);
 check('published layout, read', read(`${ALT}/ep.txt`), true);
 check('published layout, cat', bash(`cat ${ALT}/ep.txt`), true);
 check('published layout, sidecar still readable', read(`${ALT}/ep.meta.json`), false);

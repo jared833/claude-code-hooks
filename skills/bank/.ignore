@@ -1,0 +1,3 @@
+# ripgrep, and so Claude Code Grep, skips this. Git still tracks it: raw/ is the audit
+# trail. A content-mode search from any ancestor directory used to walk straight in.
+raw/

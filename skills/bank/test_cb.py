@@ -10,6 +10,7 @@ import io
 import json
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import cb
@@ -184,10 +185,13 @@ def test_feed_takes_rows_off_the_command_line(capture):
     """The approved list lives in a Notion table now, so a session pastes rows in as NAME=URL.
     A row with no URL must be reported, not silently dropped."""
     called = []
+    # Today, not a fixed date: feed() drops anything older than 14 days, so a hardcoded
+    # 20260901 turned this into a failure on 2026-09-15 for everyone who cloned the repo.
+    today = datetime.now().strftime("%Y%m%d")
 
     class R:
         returncode, stderr = 0, ""
-        stdout = json.dumps({"upload_date": "20260901", "title": "an episode", "url": "u"})
+        stdout = json.dumps({"upload_date": today, "title": "an episode", "url": "u"})
 
     real_run, cb.run = cb.run, lambda cmd, **kw: called.append(cmd[-1]) or R()
     try:
@@ -201,8 +205,8 @@ def test_feed_takes_rows_off_the_command_line(capture):
                       "https://youtube.com/watch?v=abc"], called
     # a bare URL carries "=" in its query string and is not a NAME= prefix, so the whole
     # URL is the label rather than the fragment in front of the "="
-    assert "https://youtube.com/watch?v=abc  20260901" in out, out
-    assert "MFM  20260901" in out, out
+    assert f"https://youtube.com/watch?v=abc  {today}" in out, out
+    assert f"MFM  {today}" in out, out
     assert "Nothing useful here: no URL" in out, out
 
 

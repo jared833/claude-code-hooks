@@ -371,6 +371,7 @@ def feed(sources, days=14):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows cp1252 console dies on zero-width spaces in captions
     p = argparse.ArgumentParser(description="context bank intake and search")
     sub = p.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("add")
