@@ -214,6 +214,20 @@ exists, and doing them first means his queue drains before anything new is added
    `GET /api/video` and look for anything `pending` older than about two days. A draft he has
    not decided on is either one he never saw or one he is avoiding, and both are worth naming.
 
+   **Then the gap: a rendered cut with no `/video` row at all.** Jared, 2026-09-23: *"all
+   videos should land on video for review."* A sweep that day found six cuts with a
+   `post.json` and a file in `publish/` that Engage had never heard of, the oldest from
+   2026-07-27, so he could never have decided on them. List every `posts/<slug>/` that has
+   BOTH `post.json` and `publish/<slug>.mp4`, a `post.json` older than 24 hours (younger is a
+   draft mid-cut in this or another pass), and no `_destination` key, then subtract the slugs
+   an UNFILTERED `GET /api/video` returns (no `?status=`). Reusing the `pending` list from the
+   check above would re-register, and so reset, every cut he already approved or scheduled.
+   **Register every one left over** exactly as step 7, with the
+   `cut_note` ending `Reviewed: NOT re-reviewed. Rendered but never registered; landed by the
+   gap check. Watch it before approving.` and name them in the scoreboard. A `_destination`
+   key means the cut is for somewhere other than social (`2026-08-30-owala-amazon` is an
+   Amazon review) and it is never registered, because anything on `/video` can be pushed.
+
 0. **Reconcile what already went out.** Step 0 below, whenever the command carried the word
    `reconcile`. **Do this before anything else and never fold it into "jobs 1 to 3".**
 1. **Push what he approved.** `GET http://localhost:3220/api/video?status=approved`, then
@@ -279,6 +293,12 @@ call `mcp__claude_ai_Buffer__get_post` on each id. Then:
   field is one number, so a per-channel split would need a schema change nothing has asked for
   yet.
 - A post Buffer rejected gets an ntfy push and stays where it is. Do not mark it published.
+  **Rejected includes `status: "error"` on ANY of the row's ids**, past its `dueAt`, and it
+  goes in the scoreboard on EVERY reconcile pass until Jared decides, not just the first.
+  `2026-08-23-agentic-ai-principles-h8` sat `scheduled` from 2026-09-07 to at least
+  2026-09-23 with its Instagram id errored and its TikTok id sent, and no pass ever said so,
+  because a row that is neither sent nor pending read as nothing to report. Never re-push one
+  on your own: whether it goes out again is his call.
 
 Cheap and idempotent: `published_at` is COALESCE'd, so re-reporting the same post changes
 nothing.
