@@ -382,7 +382,8 @@ above them and reach the raw layer only through a capped search. Two names ship 
 `context-bank/raw` and `skills/bank/raw`, which is where `cb.py` writes when the bank is
 installed from [`skills/bank/`](skills/bank/). Both live in one constant at the top of the file,
 along with the bank root, which is guarded against a content grep that would sweep the
-transcripts from one directory up. A single `cat` breaks that,
+transcripts from one directory up, but only once it actually holds a `raw/`: a checkout of
+this repo carries the skill's source there and nothing to protect. A single `cat` breaks that,
 silently, and the session is already ruined by the time anyone notices.
 
 The interesting part is what it took to stop refusing ordinary work. An earlier version blocked
@@ -394,7 +395,7 @@ and `wc` all pass, as do the small `.meta.json` sidecars next to each transcript
 
 Two leaks are closed outside the hook, and those are the better fixes: an `.ignore` file holding
 `raw/` makes ripgrep skip the directory, so a content search from a parent directory cannot walk
-in, and `.gitattributes` marking the transcripts `-diff` stops the `git diff --cached` before a
+in (one ships in [`skills/bank/`](skills/bank/.ignore)), and `.gitattributes` marking the transcripts `-diff` stops the `git diff --cached` before a
 commit from printing all of them.
 
 ```
