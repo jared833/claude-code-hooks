@@ -266,7 +266,8 @@ queue held 17 scheduled rows at 3 channels each, so the naive version was 51 cal
 correct one was 6. See the budget section below, which is why this matters.
 
 For each row still in scope, read `buffer_post_ids` (a map of service to Buffer post id) and
-call `mcp__claude_ai_Buffer__get_post` on each id. Then:
+call `mcp__claude_ai_Buffer__get_post` on each id except a `tiktok` one (mirror-era rows,
+2026-08-17 to 2026-09-25; TikTok is dropped and its id decides nothing). Then:
 
 - **Mark it published off the Instagram id** (`instagram` or `reels`) by calling
   `POST http://localhost:3220/api/video/push`, NOT `POST /api/video` — that is a different
@@ -277,21 +278,22 @@ call `mcp__claude_ai_Buffer__get_post` on each id. Then:
   `upsertVideoPost` doesn't even read that key) and instead re-registers the row as a fresh
   render, which is exactly the corruption a 2026-08-26 pass caused and had to repair via a
   direct SQLite fix. Body: `{"slug":"...", "publishedAt":"<its sent time, iso>"}`. That is
-  what moves the row to published and starts the streak. **Never off `story`, and never off
-  `tiktok` alone.** "Any id that sent" was the rule while a row held one id; with a mirror plus
-  a Story it would mark a row published when the reel was rejected and only the Story or only
-  TikTok went out, and `published_at` is COALESCE'd, so that wrong answer is permanent. If the
-  Instagram id sent but TikTok did not, the row is still published; say so in the scoreboard,
-  because step 0.75 cannot mirror a post that is already out.
+  what moves the row to published and starts the streak. **Never off `story`, and never off a
+  `tiktok` id.** "Any id that sent" was the rule while a row held one id; with a Story beside
+  the reel it would mark a row published when the reel was rejected and only the Story went
+  out, and `published_at` is COALESCE'd, so that wrong answer is permanent. Rows pushed between
+  2026-08-17 and 2026-09-25 also carry a `tiktok` id from the mirror era (history, see step 8);
+  it never decides published.
 - If Buffer reports view counts, send them in the same call as
-  `{"metrics":{"views":<n>}}`. That is the only thing that ever feeds the style board. **With
-  TikTok mirroring Instagram since 2026-08-17 a row has two POSTING channels, so send the SUM of
-  what Instagram and TikTok report**, and say in the scoreboard which one carried it. **Leave the
-  Story out of that sum.** A row holds three ids, and Story views are a different surface with a
-  different denominator; this one number gates preset approval on the style board at
-  `MIN_SAMPLE`, so folding Stories in would inflate the signal that decides house style. The
-  field is one number, so a per-channel split would need a schema change nothing has asked for
-  yet.
+  `{"metrics":{"views":<n>}}`. That is the only thing that ever feeds the style board. **Send
+  the Instagram reel's number.** TikTok is dropped as of 2026-09-25; from 2026-08-17 to then a
+  row had two posting channels and this sent the SUM of Instagram and TikTok (history). A row
+  that still carries a live `tiktok` id may keep adding TikTok's views to the sum until those
+  posts are gone, and say so in the scoreboard. **Leave the Story out of the number.** Story
+  views are a different surface with a different denominator; this one number gates preset
+  approval on the style board at `MIN_SAMPLE`, so folding Stories in would inflate the signal
+  that decides house style. The field is one number, so a per-channel split would need a schema
+  change nothing has asked for yet.
 - A post Buffer rejected gets an ntfy push and stays where it is. Do not mark it published.
   **Rejected includes `status: "error"` on ANY of the row's ids**, past its `dueAt`, and it
   goes in the scoreboard on EVERY reconcile pass until Jared decides, not just the first.
@@ -312,10 +314,11 @@ nothing in the logs explaining it.
 **Do it with ONE `list_posts`, `includeMetrics: true`, `status:["sent"]`, `dueAt` filtered to
 the last 7 days. Never `get_post` per id.** This used to say "with `includeMetrics: true` on
 that pass" and left the call shape unstated, which is the difference between the pass fitting
-in the budget and breaking it: 7 days of the current cadence is 8 videos a day at 3 ids each
-(reel, TikTok mirror, Story) plus 2 decks at 2, so per-id reads are about 196 calls and breach
-the 100 per 15 minutes cap twice over before a single push happens. The 154 this used to say
-was computed at 6 videos a day and the 119 before that at 3; `VIDEO_PER_DAY` is 8 as of
+in the budget and breaking it: 7 days of the current cadence is 8 videos a day at 2 ids each
+(reel, Story) plus 2 decks at 1, so per-id reads are about 126 calls and breach the 100 per 15
+minutes cap before a single push happens. The 196 this used to say was the TikTok mirror era
+(3 ids a video, 2 a deck, until 2026-09-25), the 154 before that was 6 videos a day and the 119
+before that 3; `VIDEO_PER_DAY` is 8 as of
 2026-08-23 (`engage/src/lib/schedule.js`), so re-derive it rather than trusting the number
 here. The one `list_posts` is 1 call and returns the same numbers.
 Caught 2026-07-29 by a review of the carousel fan-out arithmetic.
@@ -335,7 +338,7 @@ and it does not have to be him doing the checking, this step is it.
 ```
 GET http://localhost:3220/api/video                (no status filter, every row)
 mcp__claude_ai_Buffer__list_posts
-  channelIds: [the Instagram AND TikTok channel ids from list_channels]
+  channelIds: [the Instagram channel id from list_channels]
   status: ["scheduled", "sent"]
   dueAt: { start: <3 days ago>, end: <14 days out> }
 ```
@@ -352,47 +355,12 @@ post whose id is not in that set is an orphan.
   it should have had was never written, and inventing one now would be recording a guess as
   fact. Flag it and stop.
 
-### 0.75. Backfill the TikTok mirror on posts already scheduled
+### 0.75. (Removed 2026-09-25) TikTok mirror backfill
 
-**Also only on `reconcile`, and it drains itself.** When TikTok came back on 2026-08-17 the queue
-already held 67 scheduled rows booked out to 2026-09-12, every one of them Instagram only. Without
-this step TikTok publishes almost nothing for nearly a month while the existing queue drains,
-which is not what "adding that back as a posting channel" meant.
-
-A scheduled row needs a mirror when its `buffer_post_ids` has **no `tiktok` key**, or when it has
-a **`youtube` key**. The second case is the trap: six rows were pushed in the three-channel era
-and still carry a `tiktok` id, and those Buffer posts were deleted when he disconnected the
-channel on 2026-08-15. Verified 2026-08-17: `get_post` on one of them returns
-`Post not found`, httpCode 404. A `youtube` key means the row is from that era, because nothing
-has written one since, so it is a reliable marker for a dead TikTok id.
-
-Do NOT re-render or re-deploy anything. The video is already hosted at an immutable
-`<hash>.jaredhebb-img.pages.dev` URL that the Instagram post is holding:
-
-- `get_post` on the row's Instagram id (`instagram` or `reels`, whichever it carries). Take its
-  `assets`, its `text` and its `dueAt` verbatim.
-- `create_post` to TikTok with those same assets and text, `mode:"customScheduled"`,
-  `dueAt` as read, `schedulingType:"automatic"`. Same file, same caption, same slot: that is the
-  mirror.
-- `POST /api/video/push` with the **whole merged** `bufferPostIds` map, the existing keys
-  included. `recordVideoPush` REPLACES that column rather than merging it (`buffer_post_ids =
-  COALESCE(?, buffer_post_ids)` only guards null), so sending `{"tiktok":"..."}` alone would
-  erase the Instagram id and step 0 would stop being able to reconcile the post at all. Drop the
-  dead `tiktok` and `youtube` keys from the era rows while you are rewriting the map.
-- **Cap it at 20 rows per pass** and take them in `scheduled_for` order, soonest first. 20 is
-  20 `get_post` plus 20 `create_post` on top of the pass's own spend, which fits inside 100 per
-  15 minutes and leaves most of the daily 250; the whole backlog drains in about three days. Say
-  in the scoreboard how many were mirrored and how many are left.
-- **If the `create_post` succeeds and the `/api/video/push` report then fails, ntfy the new TikTok
-  post id immediately and stop the backfill for the pass.** Engage holds no record of it, so the
-  next pass would see no `tiktok` key and create a SECOND one. Step 0.5 flags an unrecorded Buffer
-  post as an orphan, which is the signal to attach it by hand rather than mirroring that row again.
-- A row whose Instagram post `get_post` cannot find has nothing to mirror. Report it as a stale
-  id and leave it; that is a reconcile problem, not a backfill one.
-
-**This step goes away on its own.** Once every scheduled row carries a live `tiktok` id it finds
-nothing, costs zero Buffer calls, and stays harmless. Delete it only when the queue has fully
-turned over.
+History: from 2026-08-17 this step created a TikTok copy of every scheduled Instagram row that
+had no `tiktok` key. TikTok dropped 2026-09-25 (Jared's call, LinkedIn back as the authority
+channel), so there is nothing to mirror. Never create a TikTok post from this skill, and never
+treat a missing `tiktok` key as a hole.
 
 ## The Buffer API has a hard cap, and this skill is the heaviest user of it
 
@@ -403,26 +371,22 @@ an "approaching usage limit" warning. The 24 hour number is the binding one and 
 
 Budget the pass before you spend it:
 
-- **A video push is 3 calls** (Instagram reel + TikTok mirror + Instagram Story), and 2 when the
-  cut runs over 60 seconds, because a Story that long is rejected (step 8). The Story stopped
-  being optional on 2026-08-17. **A deck
-  push is 2 calls** (Instagram + TikTok). TikTok came back 2026-08-17; it was 1 channel from
-  2026-08-15 to then and 3 (TikTok, Instagram, YouTube) before that, so an arithmetic example
-  below that says 1 or 3 channels is historical.
-- **A reconcile is 1 call per id on an overdue post**: **3 for a video row** (reels + tiktok +
-  story) and **2 for a deck** since 2026-08-17. That is why the past-only filter above is not
-  optional.
-- **The step 0.75 TikTok backfill adds up to 40 calls** on a reconcile pass, 20 `get_post` plus 20
-  `create_post`, for about three days from 2026-08-17 until the pre-TikTok queue has all been
-  mirrored. Count it in before a big push while it is still finding rows.
+- **A video push is 2 calls** (Instagram reel + Instagram Story), and 1 when the cut runs over
+  60 seconds, because a Story that long is rejected (step 8). **A deck push is 1 call**
+  (Instagram). History: from 2026-08-17 to 2026-09-25 TikTok mirrored Instagram and a video was
+  3 calls, a deck 2; from 2026-08-15 to 2026-08-17 it was 1 channel, and 3 (TikTok, Instagram,
+  YouTube) before that, so an arithmetic example that assumes TikTok is historical.
+- **A reconcile is 1 call per id on an overdue post**: **2 for a video row** (reels + story) and
+  **1 for a deck**. A mirror-era row also carries a `tiktok` id; skip it, do not spend a call
+  reading a channel that is gone. That is why the past-only filter above is not optional.
 - **`list_channels` is 1 call and is needed once per pass**, not once per post. Read it into a
   variable and reuse it. Do not hardcode the ids, they change on reconnect, but do not fetch
   them four times either.
 - `get_account` is not needed at all: the org id is `YOUR-BUFFER-ORG-ID` and it is
   already written into step 8.
 
-**Check the remaining budget before a big push.** A 6-video batch is 18 calls (3 each) plus
-reconcile plus channels, and a 6-deck batch is 12, and running that against a nearly spent daily allowance means some posts go out
+**Check the remaining budget before a big push.** A 6-video batch is 12 calls (2 each) plus
+reconcile plus channels, and a 6-deck batch is 6, and running that against a nearly spent daily allowance means some posts go out
 and some silently do not, which is worse than deferring the whole batch. If the pass would
 need more calls than are comfortably left, push what fits, leave the rest APPROVED so the next
 pass picks them up, and say so in the scoreboard. **Release the claims on the ones you are not
@@ -563,9 +527,9 @@ metric that decides it.
   never cleared 3 views are gone from `VIDEO_SLOTS_ET`. Do not resurrect this as a reason to cut
   short. It is here so that nobody rediscovers it in three weeks and reads it as new.
 - **The studies above measured channels other than the one they are applied to.** The
-  Socialinsider band is TikTok, which he posts to again as of 2026-08-17, so that one is no
-  longer borrowed; the Galloway study is Shorts and the counter-signal is YouTube, both dead.
-  The decision stands because nothing has replaced it, but treat the two dead-channel ones as
+  Socialinsider band is TikTok (a posting channel only from 2026-08-17 to 2026-09-25, dropped
+  since), the Galloway study is Shorts and the counter-signal is YouTube, all three dead.
+  The decision stands because nothing has replaced it, but treat all three as
   borrowed evidence applied to Reels by analogy, and let the first Instagram number that
   contradicts them win.
 - Notion Tasks Order 135 still runs, but it now confirms the decision rather than deciding it:
@@ -600,16 +564,15 @@ and shows how far off each one is.
   "cut": "What was dropped and why, naming the clip ids.",
   "hooks": ["option one", "option two", "option three"],
   "descriptions": {
-    "reels": "the pain, said sharper than he would say it.\n\ntwo or three short sentences, one of them carrying the search phrase.\n\none question.\n\nLink in bio: free Claude Code course."
+    "reels": "the pain, said sharper than he would say it.\n\ntwo or three short sentences, one of them carrying the search phrase.\n\none question.\n\nLink in bio: Role Build."
   }
 }
 ```
 
-**One field, and it stays one field now that TikTok is back (2026-08-17).** TikTok mirrors
-Instagram, so the `reels` caption is what both channels get; the old per-channel `tiktok`,
-`shorts` and `youtube_title` keys are still gone, and a row that carries them is an old row
-nothing reads. Do not write a second caption for TikTok. Jared, 2026-08-17: "we don't need to do
-one off hooks or anything. That will mirror whatever is on Instagram."
+**One field.** The `reels` caption is the only one; the old per-channel `tiktok`, `shorts` and
+`youtube_title` keys are gone, and a row that carries them is an old row nothing reads. TikTok
+dropped 2026-09-25 (Jared's call, LinkedIn back as the authority channel). History: from
+2026-08-17 to then TikTok mirrored Instagram and got this same caption, never one of its own.
 
 **Those `\n\n` are the format, not filler in an example.** A caption is written in
 blocks with a blank line between them and never as one unbroken run. 165 caption fields
@@ -698,8 +661,8 @@ one question
 Link in bio: free Claude Code course.
 ```
 
-Written into `post.json` that is `"block one\n\nblock two\n\nblock three\n\nLink in bio: free
-Claude Code course."`. A worked one, wrapped here for reading and a single JSON string in the
+Written into `post.json` that is `"block one\n\nblock two\n\nblock three\n\nLink in bio: Role
+Build."`. A worked one, wrapped here for reading and a single JSON string in the
 file:
 
 ```
@@ -710,7 +673,7 @@ there, and an idea I skip this week is still on it next week.
 
 Where does your idea list live right now?
 
-Link in bio: free Claude Code course.
+Link in bio: Role Build.
 ```
 
 **A caption with no blank line in it is wrong even if every rule below is satisfied.** Nothing
@@ -724,11 +687,14 @@ use. It is not a hook restated and it is not a promise. This is the strategy shi
 Instagram push runs on, so a description that opens on what the video *is* rather than on what
 it *costs the viewer not to know* is wrong even if the blocks are right.
 
-**One CTA, and which one is decided by the subject, not by habit.** Claude Code, agents, or
-anything about the way he works points at the free course (`course.jaredhebb.com`). The trade,
-the NEC, or the calculators points at `jaredhebb.com`. Both end in an email capture, which is
-the actual goal: the list is the asset, the course is the doorway. Never stack both. The CTA
-string itself comes from `aide-data/memory/conventions.md`.
+**One CTA, and which one is decided by the subject, not by habit.** As of 2026-09-22, **Role
+Build (`jaredhebb.com/role-build`) is the default** for Claude Code, agents, or anything about
+the way he works or runs his business — that includes the productivity/automation angle this
+push mostly runs on. Point at the free course (`course.jaredhebb.com`) only when the piece's own
+subject is the course itself. The trade, the NEC, or the calculators still points at
+`jaredhebb.com`. Never stack two CTAs. The CTA string itself comes from
+`aide-data/memory/conventions.md` - read it fresh rather than trusting the examples below,
+which are illustrative and will go stale.
 
 Two rules added 2026-07-29 from the short-form reach research, because all 38 posts shipped
 between June and July 2026 carried no search phrase and no question on any platform. Each
@@ -1032,19 +998,14 @@ volume problem showing up.
 
 **A carousel is an approved row too, and steps 1 and 2 do not apply to it.** A deck has no
 footage: it arrives from `/post-week` already rendered and already deployed, with its slide URLs
-in `assets_json`. Skip straight to step 3, then push it as ONE Instagram post plus ONE mirrored
-TikTok photo post, `assets:[{image:{url}}]` per slide in deck order on both, text from
-`descriptions.instagram` on both, and report it back through `/api/video/push` exactly like a
-cut. Everything else below applies unchanged.
-
-**The TikTok deck uses the same `ig` (1080x1350) PNGs, not the `tt` renders.** Mirroring means
-the same post, and `CAROUSEL_VARIANTS` stays `['ig']`, so nothing has to be re-rendered or
-re-reviewed to add the channel. If TikTok rejects a multi-image post, that is the one place the
-mirror can legitimately fail: log it, push the Instagram deck anyway, and say so in the
-scoreboard rather than holding the deck.
+in `assets_json`. Skip straight to step 3, then push it as ONE Instagram post,
+`assets:[{image:{url}}]` per slide in deck order, text from `descriptions.instagram`, and report
+it back through `/api/video/push` exactly like a cut. Everything else below applies unchanged.
+There is no TikTok deck any more (history: a mirrored TikTok photo post from 2026-08-17 until
+TikTok was dropped 2026-09-25).
 
 **This branch was deleted on 2026-08-09 when the carousel fan-out was killed, and it is back
-because carousels are (2026-08-15, 2 a day; mirrored to TikTok as well since 2026-08-17).** Without it `/post-week` registers
+because carousels are (2026-08-15, 2 a day).** Without it `/post-week` registers
 decks that nothing ever pushes: they sit `approved` forever while every log says the week
 shipped. If you are reading this because a deck is stuck, check this step exists before checking
 anything else.
@@ -1071,31 +1032,29 @@ For each approved row:
    Wrangler decides Production or Preview from the git branch of the directory you are
    standing in, not the one you are uploading. From `jaredhebb-img` (branch `main`) a
    one-file temp deploy becomes the live apex and everything else on it 404s, including any
-   already-scheduled Instagram/TikTok slide PNGs that still point at it. (LinkedIn no longer
+   already-scheduled Instagram slide PNGs that still point at it. (LinkedIn no longer
    renders a carousel PDF at all as of 2026-08-18, so that specific risk is gone; the apex
    risk to slide PNGs is not.)
 3. `list_channels` on Buffer org `YOUR-BUFFER-ORG-ID` and match by `service`. Do not
    hardcode channel ids; they change when a channel is reconnected.
 4. `create_post` per channel.
 
-   **A video, three calls** (reel, TikTok mirror, Story), or two when the cut runs over 60
-   seconds and the Story is impossible. `assets:[{video:{url}}]` on all of them:
+   **A video, two calls** (reel, Story), or one when the cut runs over 60 seconds and the Story
+   is impossible. `assets:[{video:{url}}]` on both:
    - Instagram: `metadata.instagram.type:"reel"`, `shouldShareToFeed:true`, text is the `reels`
      description
-   - TikTok: same video URL, same `reels` text, no metadata needed (`metadata.tiktok` takes only
-     `title` and `isAiGenerated`, and neither is wanted)
 
-   **TikTok is back as of 2026-08-17 (Jared: "started to see traction"), and it MIRRORS
-   Instagram.** Same file, same caption, same `dueAt`, one `video_posts` row. There is no
-   TikTok-specific hook, no TikTok caption field, no second render and no separate slot: if a
-   pass is doing extra work for TikTok, it is doing the wrong thing. It was dead from 2026-08-15
-   to 2026-08-17 and YouTube still is, so `list_channels` returns exactly three channels
-   (instagram, tiktok, linkedin). Never post to LinkedIn from here.
+   **TikTok dropped 2026-09-25 (Jared's call, LinkedIn back as the authority channel).**
+   Instagram is the only channel this skill posts to. Never post to TikTok, YouTube or LinkedIn
+   from here; LinkedIn posts come from `/post-week`, not this skill. Jared disconnects TikTok in
+   Buffer himself, so until he does `list_channels` may still return a tiktok channel: ignore it.
+   History: TikTok mirrored Instagram (same file, caption and `dueAt`, a second `create_post`)
+   from 2026-08-17 to 2026-09-25, and was dead from 2026-08-15 to 2026-08-17 before that.
 
    **Every reel also goes out as an Instagram Story, at the same `dueAt`. This is REQUIRED, not
    a bonus** (2026-08-17, Jared: "every reel posted on instagram should have a matching story
    post posted at the same time"; originally added the same day as "juice worth the squeeze").
-   Same uploaded video URL, a third `create_post` call, no text,
+   Same uploaded video URL, a second `create_post` call, no text,
    `metadata.instagram.type:"story"` and `shouldShareToFeed:false`, the SAME `dueAt` as the reel.
    It is free reach off a file already cut and already uploaded, not a reason to cut anything
    differently: no separate render and no separate `video_posts` row. It gets no schedule-spacing
@@ -1115,34 +1074,33 @@ For each approved row:
    scoreboard by slug and duration: that is a filming and cutting problem surfacing, and a silent
    skip is what let 47 reels sit with no Story at all until 2026-08-17.
 
-   **Backfill, same shape as step 0.75.** On a reconcile pass, any `scheduled` row whose
-   `buffer_post_ids` has no `story` key and whose cut is under 60 seconds gets one created from
-   the reel's own asset URL and `dueAt`. No re-render, no re-deploy, no new row. Cap it at 20 a
-   pass like the TikTok mirror. This exists because the Story used to be optional and failed
+   **Backfill.** On a reconcile pass, any `scheduled` row whose `buffer_post_ids` has no `story`
+   key and whose cut is under 60 seconds gets one created from the reel's own asset URL and
+   `dueAt` (`get_post` on the reel id for its `assets` and `dueAt`, then `create_post`, then
+   report the WHOLE merged `bufferPostIds` map, since `recordVideoPush` replaces that column). No
+   re-render, no re-deploy, no new row. Cap it at 20 a pass, soonest `scheduled_for` first. If
+   the `create_post` succeeds and the report fails, ntfy the new Story id and stop the backfill
+   for the pass, or the next pass creates a second one. This exists because the Story used to be optional and failed
    quiet: on 2026-08-17 a sweep found 47 of 72 future reels with no Story, 30 of which were
    eligible and were created by hand.
 
-   **When ONE of the three calls fails, say which, and never let the row imply they all went
-   out.** `recordVideoPush` sets `status` off `scheduledFor` alone and never looks at
-   `bufferPostIds` (`src/lib/db.js`), so a report of `{"reels":"..."}` and a report of
-   `{"reels":"...","tiktok":"..."}` produce a row that reads identically: `scheduled`, counted by
+   **When ONE of the two calls fails, say which, and never let the row imply both went out.**
+   `recordVideoPush` sets `status` off `scheduledFor` alone and never looks at `bufferPostIds`
+   (`src/lib/db.js`), so a report of `{"reels":"..."}` and a report of
+   `{"reels":"...","story":"..."}` produce a row that reads identically: `scheduled`, counted by
    the runway gauge and the streak, with nothing recording the hole. So:
-   - **TikTok failed, Instagram went out:** report the Instagram id, ntfy it, and name the slug in
-     the scoreboard. Do not retry it inside this pass. Step 0.75 finds exactly this shape, a
-     scheduled row with no `tiktok` key, and mirrors it on the next reconcile pass, so the hole
-     closes itself as long as you reported the truth.
-   - **Instagram failed, TikTok went out:** still report the TikTok id, or step 0.5 flags that post
-     as an orphan on the next pass. Then ntfy HIGH priority and say plainly in the scoreboard that
-     this row is TikTok-only. Instagram is the channel that matters, so this one is a hand fix and
-     never a self-healing case.
-   - **The Story failed, the reel went out:** report the reel and TikTok ids and omit `story`, then
-     name the slug in the scoreboard. The backfill picks it up next pass, same as the TikTok
-     mirror. **A missing `story` key is ambiguous on purpose and that is the one weakness here:**
+   - **The reel failed, the Story went out:** still report the `story` id, or step 0.5 flags that
+     post as an orphan on the next pass. Then ntfy HIGH priority and say plainly in the scoreboard
+     that this row has a Story and no reel. The reel is the post that matters, so this one is a
+     hand fix and never a self-healing case.
+   - **The Story failed, the reel went out:** report the reel id and omit `story`, then name the
+     slug in the scoreboard. The backfill picks it up next pass.
+     **A missing `story` key is ambiguous on purpose and that is the one weakness here:**
      it reads identically whether the call failed or the cut was over 60 seconds and never had
      one. The backfill re-checks duration before it retries, so an over-length row is skipped
      rather than retried forever, but nothing in the row records WHICH it was. That is why the
      length skips have to reach the scoreboard in words.
-   - **All three failed:** report nothing. The row stays `approved` and the next pass retries it
+   - **Both failed:** report nothing. The row stays `approved` and the next pass retries it
      whole.
 5. **Schedule explicitly. `mode: "customScheduled"` with `dueAt` from the plan, and
    `schedulingType: "automatic"`. Never `addToQueue`.** Queue mode hands out the next free
@@ -1151,10 +1109,10 @@ For each approved row:
 6. Report back:
    ```
    POST http://localhost:3220/api/video/push
-   {"slug":"...", "bufferPostIds":{"reels":"...","tiktok":"...","story":"..."}, "scheduledFor":"<iso>"}
+   {"slug":"...", "bufferPostIds":{"reels":"...","story":"..."}, "scheduledFor":"<iso>"}
    ```
-   `bufferPostIds` is a free-form object; `story` and `tiktok` are only present when those calls
-   succeeded, omit the key rather than sending null. This is the only thing allowed to move a
+   `bufferPostIds` is a free-form object; `story` is only present when that call succeeded,
+   omit the key rather than sending null. This is the only thing allowed to move a
    row past approved. Without it the runway gauge is wrong, which is the one number that
    tells him whether to film.
 
@@ -1220,10 +1178,9 @@ needed, it is an explicit id.
 
 **Both cases share the same write, once the row is identified:**
 
-- Wait for step 8 to confirm the post actually reached Buffer. Then append `Instagram` and
-  `TikTok` (the only values this skill may write, and `TikTok` only for a channel push that
-  actually succeeded: never `LinkedIn`, which it does not post to, and never `YouTube`, which is
-  still dead) to that row's `Made on`
+- Wait for step 8 to confirm the post actually reached Buffer. Then append `Instagram` (the
+  only value this skill may write: never `TikTok`, dropped 2026-09-25, never `LinkedIn`, which it
+  does not post to, and never `YouTube`, which is still dead) to that row's `Made on`
   (`mcp__claude_ai_Notion__notion-update-page`, `update_properties`). It is a multi select:
   read the current value first and append, never overwrite. Overwriting erases the record
   of a post or newsletter made from the same idea by another producer.

@@ -1,6 +1,6 @@
 ---
 name: idea-vet
-description: Work up the raw ideas in the Notion Content Bank into a video-first menu Jared can shoot from - every row gets an Instagram Reel with a full spoken script, a blog companion is optional and rare since that burden sits with the weekly batch. LinkedIn is not a posting channel as of 2026-08-18. Use when Jared says /idea-vet, "vet the ideas", "work up the bank", or on a schedule.
+description: Work up the raw ideas in the Notion Content Bank into a video-first menu Jared can shoot from - every row gets an Instagram Reel with a full spoken script, plus a LinkedIn angle (longform or carousel PDF, CTA toward Role Build) when the idea proves he can take work off an office seat. LinkedIn is a posting channel again as of 2026-09-25; TikTok is dropped. Use when Jared says /idea-vet, "vet the ideas", "work up the bank", or on a schedule.
 ---
 
 # Work up the Content Bank
@@ -29,7 +29,7 @@ Verified schema, 2026-07-27. Five properties:
 | Property | Type | Values | Who writes it |
 |---|---|---|---|
 | `Draft` | title | the idea itself | Jared |
-| `Platform` | multi select | LinkedIn, Newsletter, TikTok, Blog, X, YouTube, Instagram | Jared, as a hint. Optional. |
+| `Platform` | multi select | LinkedIn, Newsletter, TikTok, Blog, X, YouTube, Instagram | Jared, as a hint. Optional. (TikTok, X and YouTube are options on the property but none is a posting channel as of 2026-09-25.) |
 | `Stage` | select | Raw, Worked up | this skill |
 | `Kind` | select | Pillar, One-off, Pickup | this skill writes the first two, `/vid-batch` writes `Pickup` |
 | `Made on` | multi select | same minus X | the producers, after something ships |
@@ -126,7 +126,7 @@ rather than guessing what they mean.
 3. Read the idea. If it names something specific in his work, go read that first: the repo,
    the tool, the page. A workup built on a guess is worse than no workup.
 
-4. Append one section to the page body. **Ten sections, and every line cap below is a hard
+4. Append one section to the page body. **Twelve sections, and every line cap below is a hard
    cap, not a target.** The old version of this ran about 950 words per idea because it was
    told to justify every call in prose. It is not any more. A recommendation with no argument
    attached is the correct output here, because he is the one deciding and he already knows
@@ -147,11 +147,11 @@ businesses and solo operators). `narrow` is ring 1 or 2, `broad` is ring 3, and 
 fits ring 4 or 5 is `chaos` at best. This is a suggestion inside the body: never a Notion property,
 and `/week-plan` may overrule it.
 
-**Video.** Every row gets one. Instagram Reels is the baseline, and the same cut mirrors to TikTok
-unchanged, so there is still exactly one script per row (Jared, 2026-08-13: "there will be a video
-done on each row"; YouTube killed 2026-08-15, TikTok killed then and back 2026-08-17 as a mirror,
-which means **never write a TikTok-specific script, hook or caption**; LinkedIn native video is
-dead too, as of 2026-08-18, same as the rest of LinkedIn). Two lines: the shape (talking head, screen capture,
+**Video.** Every row gets one. Instagram Reels is the only video channel, so there is exactly
+one script per row (Jared, 2026-08-13: "there will be a video done on each row"). Never write a
+TikTok, YouTube or LinkedIn video script, hook or caption: TikTok was dropped on 2026-09-25
+(history: it mirrored Instagram from 2026-08-17), YouTube died 2026-08-15, and LinkedIn came back
+on 2026-09-25 for written posts and carousel PDFs only, not native video. Two lines: the shape (talking head, screen capture,
 cutaway, demo-over-voiceover, whatever actually fits this idea) and the edit approach, named
 specifically. **Vary the edit approach row to row** - jump cuts are one option, not the
 default, and nothing too belligerent.
@@ -162,27 +162,41 @@ idea gets filmed as several separate pieces that do not share footage. Say which
 under a line. Do not reach for "long shoot chunked into shorts" out of habit - it's one
 option among several, useful when the filming load needs lightening, not the house style.
 
+**LinkedIn angle** (reinstated 2026-09-25). One line, or "None." LinkedIn is a posting channel
+again, for authority with the Role Build buyer: the owner or manager of a firm of roughly 20 to
+249 staff who is deciding whether to pay for a diagnostic of one office seat. Say whether this
+idea makes a LinkedIn **longform** (a first-hand story: a seat mapped, a task taken off a seat
+and the hours it returned, a build that broke and why) or a **carousel PDF** (a list or a
+sequence that reads in slides), and name its first line. That first line carries the whole
+payload with its number in it, per the "whole payload in the first line" play in
+`context-bank/playbooks/attention.md`; an announcement or a reaction to somebody else's release
+is not a LinkedIn angle, per the same playbook's "post what you saw" play. Most rows about
+Claude Code mechanics alone have no LinkedIn angle; rows about office work, a seat, or an
+owner's time usually do. `/post-week` drafts the actual post; this line only tells it which rows
+to reach for. Never a price in this line or anywhere in the workup: prices live only in
+`<HOME>\projects\digital-products\role-build-offer.md`.
+
 **Written companion, optional.** Only when the idea earns its own written piece beyond the
-video caption: a real search asset (blog). LinkedIn longform is no longer an option here at
-all: LinkedIn stopped being a posting channel on 2026-08-18, so there is nowhere for one to go.
-If you write a companion, name the format in one line and why. If not: "None - video
-only," and stop there. **Do not default to producing blog copy.** That burden
+video caption: a real search asset (blog). A LinkedIn post is not a companion; it goes on the
+LinkedIn angle line above. If you write a companion, name the format in one line and why. If
+not: "None - video only," and stop there. **Do not default to producing blog copy.** That burden
 sits with `/post-week`'s weekly batch, which already drafts independently of this bank, and
 duplicating it here is what caused the gap Jared flagged 2026-08-13: weekly batch topics not
 matching what the bank workups laid out. This bank is where he looks for what to shoot, not a
 written content queue.
 
-**Hooks.** Two. One long form (first ~210 characters, only if a written companion exists,
-otherwise skip) and one short form (carries the first 3 seconds of the video). Under about 12
+**Hooks.** Two. One long form (first ~210 characters, for the LinkedIn angle or a written
+companion; skip if neither exists) and one short form (carries the first 3 seconds of the video). Under about 12
 words each. Different jobs, never copy paste between them.
 
 **Video description.** Actual caption copy for Instagram, not
 a description of what it would say. **It opens on the pain**, named in his audience's own terms
 and stated sharper than they would state it, before it says what the video is (Jared,
 2026-08-15). Ends with the standard CTA in `aide-data/memory/conventions.md` (bio-link
-variant), and which CTA is decided by the subject: Claude Code and the way he works point at
-the free course, the trade and the calculators point at jaredhebb.com. Both land on an email
-capture, which is the actual goal. If a written companion exists, its
+variant). As of 2026-09-22, **the bank's default CTA is Role Build**, not the course (Jared:
+"all content in the bank should be in support of pushing that product") - the trade and the
+calculators still point at jaredhebb.com. Point at the free course only when the piece's own
+subject is the course itself. If a written companion exists, its
 description goes here too, CTA-free like the producers.
 
 **Script.** The full spoken script for the video, not a shot list. Jared, 2026-08-13: "I want
@@ -236,7 +250,7 @@ to derive anything from as of 2026-07-28. Revisit at roughly 20 posts with metri
    would drain into a shot list, which is exactly what `Pickup` must not become.
 
    This is the only route by which this skill writes `Pickup`, and it matters because both
-   producers filter those rows out in SQL (`post-week` line 84; `tik-week` did too until it
+   producers filter those rows out in SQL (`post-week` step 3; `tik-week` did too until it
    was deleted on 2026-08-15). A blocker written only as body prose is invisible to them and
    the row ships anyway.
 
@@ -281,19 +295,21 @@ to derive anything from as of 2026-07-28. Revisit at roughly 20 posts with metri
   bank, and stacking a written companion on every row here just gave him two disconnected
   sets of topics. Default every row to video only. Write a companion piece only when the idea
   is specifically a written argument (a search-driven blog topic), and say so explicitly
-  rather than reflexively filling the Written companion section. LinkedIn is not an option
-  here as of 2026-08-18; it is not a posting channel at all any more.
+  rather than reflexively filling the Written companion section. The LinkedIn angle line is
+  different: it is one line, not a draft, and it exists so `/post-week` can find the rows that
+  prove Role Build (reinstated 2026-09-25).
 - **Editing style and repurposing shape are decided per entry, never defaulted.** Chunking one
   long shoot into a short series is one option, useful for lightening the filming load, and it
   is not the house style. So is any one editing pattern. Look at what this specific idea needs
   and name the call; don't carry the last entry's answer forward on autopilot.
 - Voice rules from `voice-profile.md`. No em or en dashes, no banned AI-tell words, no guru
   register. The banned list is in `aide-data/memory/conventions.md` and home `CLAUDE.md`.
-- **Neither X nor LinkedIn is a posting channel, as of 2026-08-18.** X since 2026-07-26,
-  LinkedIn since 2026-08-18. If an idea reads as X-shaped or LinkedIn-shaped (a short hot
-  take, a professional argument), say so **in the body** and route it to a carousel instead:
-  that is the only text-forward format left that actually ships. You cannot route it by
-  writing `Platform`, and there is no X or LinkedIn option on `Made on` at all.
+- **X is not a posting channel (since 2026-07-26). LinkedIn is again (since 2026-09-25).** An
+  X-shaped idea (a short hot take) gets routed in the body to a carousel. A LinkedIn-shaped idea
+  (a professional argument, a first-hand office story) goes on the LinkedIn angle line. You
+  still never write `Platform`. `Made on` gets `LinkedIn` only from `/post-week`, after Buffer
+  confirms a post. (History: from 2026-08-18 to 2026-09-25 LinkedIn was not a posting channel
+  and LinkedIn-shaped ideas were routed to carousels.)
 - **A contrarian version is a new row, not a paragraph.** The old workup carried a Contrarian
   take section, and when the answer was a genuinely different post it buried that post inside
   another idea's page where nothing would ever produce it. If reading an entry surfaces a real

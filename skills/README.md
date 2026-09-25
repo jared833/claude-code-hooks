@@ -71,7 +71,7 @@ it is the only part that determines whether the skill ever fires.
 Then work through the file and replace every placeholder. The ones that were scrubbed are
 obvious: `YOUR-CONTENT-BANK-DATA-SOURCE-ID`, `YOUR-CONTEXT-SOURCES-DATA-SOURCE-ID`,
 `YOUR-TASKS-DATA-SOURCE-ID`,
-`YOUR-BACKLOG-DATA-SOURCE-ID`, `YOUR-BUFFER-ORG-ID`, `<CANVA-DESIGN-ID>`, `<HOME>`, and any
+`YOUR-BACKLOG-DATA-SOURCE-ID`, `YOUR-BUFFER-ORG-ID`, `YOUR-LINKEDIN-CHANNEL-ID`, `<CANVA-DESIGN-ID>`, `<HOME>`, and any
 other `<angle-bracket>` value.
 
 `bank/` is the exception to "none of these will run as-is". It ships the script it drives
