@@ -858,10 +858,14 @@ five at once. The next one appears here on its own once this variant lands.
 cutting to stay out of his active hours, so `/api/video/repurpose/decision` starts no pass at
 all: a bank of ten approved banners costs nothing until a pass like this one runs.
 
-**Cut only what there is room for.** Fresh footage always outranks a variant and `planSchedule`
-enforces that on its own, so the number worth cutting is the holes left after this batch's new
-cuts are placed. Cutting more just parks variants in front of tomorrow's shoot. Render and
-register it like any other cut:
+**Cut one variant for EVERY `awaitingCut` family, every pass. Never hold one back.** Room is not
+the constraint: the grid is 8 videos a day for 60 days, and `planSchedule` already puts new
+footage first and keeps each family off neighboring days, so a variant cut tonight simply lands
+on its first legal day, however far out. **`nextEligible` and the page's "Earliest slot" are a
+display hint, never a reason to wait.** From 2026-09-23 to 2026-09-25 passes read it as a hold
+("not eligible until 2026-09-27"), cut nothing off 32 banked banners, and the calendar thinned
+to 1 or 2 posts a day. A pass that ends with `awaitingCut` entries it did not cut must say which
+and why in its report. Render and register it like any other cut:
 
 - **Read `note` first and do what it says.** He leaves edit notes on approvals, not just on
   skips (his call, 2026-08-15). Two of them change what you build:
