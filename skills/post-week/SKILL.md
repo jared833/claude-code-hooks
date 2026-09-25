@@ -14,7 +14,7 @@ diagnostic, then a whole-seat build), and a buyer at that price checks who he is
 LinkedIn is where that check happens, so it is a posting channel again, **for authority, not for
 reach**. TikTok is dropped as a channel: verified 2026-09-25 with Buffer `list_channels`, the
 organization holds exactly two channels, LinkedIn (`YOUR-LINKEDIN-CHANNEL-ID`, a NEW id, the
-old `6910fbce...` id in the history below is dead) and Instagram. Instagram continues unchanged.
+old id in the history below is dead) and Instagram. Instagram continues unchanged.
 
 What this skill owns now:
 
