@@ -1108,7 +1108,9 @@ For each approved row:
    `Invalid post: Video must be no longer than 1 minute for Instagram Stories.` Measured
    2026-08-17 on a 125 second cut, against 52 and 55 second cuts that went through the same pass.
    So the rule above is "every reel under 60 seconds", and a longer reel has no Story until
-   something cuts a short version of it. **Check `durationMs` before you make the call** rather
+   something cuts a short version of it. **Never shape or trim a reel to fit under 60 for the
+   Story's sake.** Jared, 2026-09-25: *"the story isn't important. I value a reel that is the
+   appropriate length over the story."* **Check `durationMs` before you make the call** rather
    than spending a Buffer call to be told no. Report every reel skipped for length in the
    scoreboard by slug and duration: that is a filming and cutting problem surfacing, and a silent
    skip is what let 47 reels sit with no Story at all until 2026-08-17.
