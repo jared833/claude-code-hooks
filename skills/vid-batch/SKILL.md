@@ -12,6 +12,14 @@ or redrafts something, or Jared typing `/vid-batch`. Uploading footage does NOT 
 pass. Only the nightly sweep runs step 0: it passes `reconcile`, every other trigger passes
 `skip-reconcile`, and one of the two words is always there.
 
+**Nobody is there to answer you. Finish the whole pass; never stop to ask.** Every trigger
+except Jared typing `/vid-batch` runs you as `claude -p`, where a closing question is read by
+no one. On 2026-09-26 two passes in a row ran step 0, then ended on "say the word and I'll
+run the variant cutting next", and 10 banked variants went uncut while Jared waited for them.
+The three-agent cap means dispatching in WAVES of three and starting the next wave yourself
+when one returns. It never means stopping after step 0, and it never means waiting for a yes.
+Anything you genuinely cannot do goes in the report as not done, with the reason.
+
 Working directory is `<HOME>\Desktop\Social Content`. **Read its `CLAUDE.md`
 first.** It is the contract for this folder and everything below assumes it.
 
