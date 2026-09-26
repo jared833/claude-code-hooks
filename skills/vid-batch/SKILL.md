@@ -929,7 +929,10 @@ to **skip** and takes all four decisions a cut card takes:
 
 - **Approve** banks the 5 to 10 banners he ticked.
 - **Skip** rests that family for a week. It is not a rejection, and the queue offers it again
-  after. A family whose bank runs out rests the same week before it is offered a fresh 15.
+  after. A family whose bank runs out does NOT rest (Jared, 2026-09-25): if it is under its
+  ceiling it is back in `needsOffers` on the next pass so he can pick the remaining hooks.
+  **When you draft for a family that already has variants, read the banners it has already
+  run (each variant's `post.json` overlay) and write fifteen that are none of them.**
 - **New banners** (`redraft`) throws your fifteen away and asks for fifteen more, without
   resting the family: it is back in `needsOffers` on the next pass. **Read `prev_note` on that
   entry before you draft again.** It is the only record of what was wrong with the last set, and
