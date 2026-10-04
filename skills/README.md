@@ -1,8 +1,8 @@
 # Skills
 
-Fifteen [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Fourteen
+Sixteen [Claude Code skills](https://code.claude.com/docs/en/skills) out of a working setup. Fifteen
 of them are the real production workflows, running unedited except where a private id or a business
-specific had to come out. The fifteenth is a template.
+specific had to come out. The sixteenth is a template.
 
 None of these will run as-is against your accounts. They name a Notion database you do not have,
 a local review app that is not published, a Buffer channel that is not yours. That is on purpose
@@ -17,6 +17,7 @@ refuses to do, and the note explaining why a previous version was wrong.
 |---|---|
 | [`seat-template/`](seat-template/) | The pattern for a "seat": a named role in a one-person company that Claude answers as. Start here |
 | [`ship-skill/`](ship-skill/) | The follow-up list for a finished skill or hook: sanitize it, publish it, update every count that drifts, record it |
+| [`make-skill/`](make-skill/) | Writes new skills: interviews you about a job, or captures a task you just did, then saves and tests the SKILL.md. Ships with `skill-maker.md`, an agent you can start a chat as (`claude --agent skill-maker`) |
 | [`busy-work/`](busy-work/) | An autonomous backlog-clearing session. Orchestrator plus a bounded number of workers, runs until told to stop |
 | [`freebie/`](freebie/) | Ships a free tool on a static site end to end: pick it, build it to a written standard, verify, deploy, record |
 | [`post-week/`](post-week/) | Drafts, reviews and queues a week of written content in one sitting |
@@ -73,6 +74,10 @@ obvious: `YOUR-CONTENT-BANK-DATA-SOURCE-ID`, `YOUR-CONTEXT-SOURCES-DATA-SOURCE-I
 `YOUR-TASKS-DATA-SOURCE-ID`,
 `YOUR-BACKLOG-DATA-SOURCE-ID`, `YOUR-BUFFER-ORG-ID`, `YOUR-LINKEDIN-CHANNEL-ID`, `<CANVA-DESIGN-ID>`, `<HOME>`, and any
 other `<angle-bracket>` value.
+
+`make-skill/` also runs as-is. Its `skill-maker.md` is an agent, not a skill: move it to
+`~/.claude/agents/` and start a chat as it with `claude --agent skill-maker`. It reads the skill
+file at startup, because in testing on 2026-10-04 the agent's `skills:` preload did not load when it ran as the main session.
 
 `bank/` is the exception to "none of these will run as-is". It ships the script it drives
 (`cb.py`, its 19 tests, the `INDEX.md` an agent reads first and the shape of a playbook), and
