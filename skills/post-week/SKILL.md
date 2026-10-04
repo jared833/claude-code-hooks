@@ -30,7 +30,7 @@ month LinkedIn was off, and every "zero Buffer calls" line in this file is super
 LinkedIn leg's budget. Every mention of TikTok below is history too.
 
 **The prices never appear in this file or in a post.** They live only in
-`<HOME>\projects\digital-products\role-build-offer.md`. A post names the diagnostic and
+`<HOME>\projects\role-build\role-build-offer.md`. A post names the diagnostic and
 Role Build in words; it never states a number for either.
 
 ## CORRECTION 2026-08-18 (HISTORY, reversed 2026-09-25): LinkedIn is not a posting channel
@@ -608,7 +608,7 @@ L1. **Draft three longforms.** Each is one real story from the harvest (step 1) 
    for example: "This is what the Role Build diagnostic maps, one seat at a time. It starts with
    a free fit call." Rules for that line:
    - **Never a price.** Not the diagnostic, not the build, not the monthly. Prices live only in
-     `<HOME>\projects\digital-products\role-build-offer.md`, and a number in a post is a
+     `<HOME>\projects\role-build\role-build-offer.md`, and a number in a post is a
      second copy that drifts the day the offer changes.
    - **No URL in the body.** LinkedIn post text cannot hang a link on words, and the standing
      rule bans a full URL as visible text. The destination is the Role Build page on

@@ -174,7 +174,7 @@ is not a LinkedIn angle, per the same playbook's "post what you saw" play. Most 
 Claude Code mechanics alone have no LinkedIn angle; rows about office work, a seat, or an
 owner's time usually do. `/post-week` drafts the actual post; this line only tells it which rows
 to reach for. Never a price in this line or anywhere in the workup: prices live only in
-`<HOME>\projects\digital-products\role-build-offer.md`.
+`<HOME>\projects\role-build\role-build-offer.md`.
 
 **Written companion, optional.** Only when the idea earns its own written piece beyond the
 video caption: a real search asset (blog). A LinkedIn post is not a companion; it goes on the
