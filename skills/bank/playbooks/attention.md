@@ -15,7 +15,7 @@ Line 2 of the body is the freshness line and `cb.py stale` reads exactly that. `
 date the whole file was last rebuilt against live sources, and it moves only on a rebuild, never
 when a play is appended. A missing or unknown `ttl` reports "rebuild", never "ok".
 
-Hard cap 8KB. The cap never rises. Over it, the weakest play comes out or the file splits by
+Hard cap 32KB (8KB until 2026-10-10). Over it, the weakest play comes out or the file splits by
 subtopic, and whichever you did gets named in the run's output. Silently dropping the new play
 is the one wrong answer.
 

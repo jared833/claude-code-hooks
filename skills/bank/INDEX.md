@@ -73,8 +73,8 @@ dead weight, and that is the way this folder fails.
 **Source:** raw/2026-07-25-example-show-ep12.txt "ten saved searches, three replies each"
 ```
 
-No named result behind it, no play. Cap 8KB per playbook, and the cap never rises: the only
-way to add is to sharpen what is there.
+No named result behind it, no play. Cap 32KB per playbook (raised from 8KB on 2026-10-10). Over it, the
+weakest play comes out or the file splits by subtopic.
 
 A play in here is a recorded claim, not an endorsement. When one gets tried and does not work,
 it stays and gains a line, because otherwise the next agent proposes it again:

@@ -65,7 +65,7 @@ if (tool === 'Read') {
 } else if (tool === 'Grep') {
   // files_with_matches (the default) returns names only and is harmless. content mode is not:
   // head_limit defaults to 250 lines of up to 241 chars, which is most of a transcript.
-  // Only raw/ and the bank root. Content-grepping an 8KB playbook is CHEAPER than the Read
+  // Only raw/ and the bank root. Content-grepping a playbook (32KB cap) is CHEAPER than the Read
   // this hook would otherwise push the agent toward, and blocking it strands a session with
   // a refusal message that describes something it did not do.
   // The bank root only counts when it HAS a raw/: a repo carrying the skill's source under

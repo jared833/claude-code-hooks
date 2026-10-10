@@ -106,7 +106,7 @@ subagent per episode, in parallel.
   and add its row to `INDEX.md` in the same run. An index that does not list a playbook means
   nothing reads it.
 
-**Three of the five playbooks sit within about a line of the 8KB cap.** The cap never rises.
+**Playbooks are capped at 32KB** (raised from 8KB by Jared on 2026-10-10).
 Over it, the weakest play comes out or the file splits by subtopic, and whichever you did gets
 named in your output. Silently dropping the new play is the one wrong answer.
 
@@ -122,7 +122,7 @@ The dispatch prompt carries, in words:
   section number.** The `inspo-` example in `INDEX.md` is a legacy form for a non-transcript
   source; do not copy it. Write `raw/<file>.txt "<exact phrase>"` and confirm the phrase really
   is in the file before writing the play.
-- the 8KB cap and the eviction rule above
+- the 32KB cap and the eviction rule above
 - **do not spawn subagents; do this work yourself**
 - verify before reporting: a claim you did not check is wrong
 
@@ -166,7 +166,7 @@ line still gets proposed when the case differs; name the prior failure when you 
 ## Do not
 
 - Do not mark a row `Skip`. That is his word for no.
-- Do not raise the 8KB playbook cap or the 6-episode run cap.
+- Do not raise the 32KB playbook cap or the 6-episode run cap without Jared.
 - Do not write to `hooks.md` or `editing.md`.
 - Do not ingest a paid course, a leak, or anything not public and free.
 - Do not report a transcript as landed without checking the file exists.

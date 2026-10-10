@@ -61,5 +61,5 @@ them is the one in `SKILL.md`, that a file rebuilt on a schedule must never be h
 
 A transcript plus its distillation is roughly 110K tokens, so an unbounded show sweep is how
 this becomes a bill: six episodes a run, and the overflow goes back in the queue. A playbook is
-capped at 8KB so the only way to add a play is to sharpen what is already there, which is the
+capped at 32KB (8KB until 2026-10-10) so a file that grows past it splits by subtopic or loses its weakest play, which is the
 mechanism against the real failure, a pile of raw text nobody ever distilled.
