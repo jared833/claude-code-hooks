@@ -695,14 +695,13 @@ use. It is not a hook restated and it is not a promise. This is the strategy shi
 Instagram push runs on, so a description that opens on what the video *is* rather than on what
 it *costs the viewer not to know* is wrong even if the blocks are right.
 
-**One CTA, and which one is decided by the subject, not by habit.** As of 2026-09-22, **Role
-Build (`jaredhebb.com/role-build`) is the default** for Claude Code, agents, or anything about
-the way he works or runs his business — that includes the productivity/automation angle this
-push mostly runs on. Point at the free course (`course.jaredhebb.com`) only when the piece's own
-subject is the course itself. The trade, the NEC, or the calculators still points at
-`jaredhebb.com`. Never stack two CTAs. The CTA string itself comes from
-`aide-data/memory/conventions.md` - read it fresh rather than trusting the examples below,
-which are illustrative and will go stale.
+**One CTA. On a reel it is always "comment CLAUDE" (2026-10-14).** Every reel's spoken close
+is the ManyChat comment flow that DMs the free Claude Code course, so the caption's last block
+is the same line, whatever the subject. History: from 2026-09-22 Role Build was the default
+("Link in bio: Role Build") and the course only for course-subject pieces; that is superseded
+for reels by `aide-data/memory/conventions.md` "UPDATE 2026-10-14". Never stack two CTAs. Read
+the exact string fresh from `conventions.md` rather than trusting the examples above, which
+are illustrative and stale.
 
 Two rules added 2026-07-29 from the short-form reach research, because all 38 posts shipped
 between June and July 2026 carried no search phrase and no question on any platform. Each
@@ -713,7 +712,8 @@ changed**, so the old TikTok-by-analogy figures are gone. Current numbers live i
 
 - **One search phrase per post.** The phrase a stranger would type: "claude code hooks",
   "claude code for beginners", "ai coding without coding". **It has to be SPOKEN, not only
-  written.** Instagram transcribes Reel audio and reads caption text; that it reads burned-in
+  written.** Instagram reads caption text; that it transcribes Reel audio for search is widely
+  claimed and **not confirmed by Meta** (checked 2026-10-14), and that it reads burned-in
   on-screen text is claimed by publisher guides and **not confirmed by Meta**, so the banner
   can never be the only place the phrase appears. Say it out loud when the take already
   contains it, never redub to force it.
