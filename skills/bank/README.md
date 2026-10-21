@@ -3,10 +3,17 @@
 A methods library built out of podcast and video transcripts, so an agent follows something
 that worked instead of inventing something plausible.
 
-Two layers. `playbooks/*.md` holds short plays and is what agents read. `raw/*.txt` holds the
-full transcripts, roughly 25K tokens each, and nothing reads those directly: a hook refuses it
-and names a capped search instead. `SKILL.md` is the workflow that turns a queue of links into
-plays without stopping to ask.
+Three layers. `breakdowns/*.md` holds one full breakdown per episode, every usable method with
+an evidence label (Measured, Reported, Opinion) instead of a filter. `situations.md` files every
+play under the decision it helps with, so an agent facing "pricing an offer" finds every play on
+it in one place. `raw/*.txt` holds the full transcripts, roughly 25K tokens each, and nothing
+reads those directly: a hook refuses it and names a capped search instead. `playbooks/*.md` are
+topic views over the same plays. `SKILL.md` is the workflow that turns a queue of links into all
+of it without stopping to ask.
+
+Until 2026-10-20 the bank kept only plays with a named number behind them and threw the rest of
+each episode away. The operator's verdict: "a dollar sign isn't our filter. we're missing out on
+a ton of really good stuff." So evidence became a label on every play, and nothing is dropped.
 
 ## What is in here
 
@@ -15,11 +22,15 @@ plays without stopping to ask.
 | `SKILL.md` | The workflow. The real file out of a working setup: ids and paths swapped, one note added, nothing else |
 | `cb.py` | The script it drives: `add`, `search`, `feed`, `transcript`, `stale` |
 | `test_cb.py` | 19 tests. `python test_cb.py` |
+| `file_situations.py` | Rebuilds `situations.md` from every breakdown, Measured first, keeping hand-written `Conflict:` lines. `--check` first |
+| `file_playbooks.py` | Appends each breakdown play not yet in a playbook to a subtopic file, split at 32KB, append-only so a `**Tried:**` line survives |
+| `test_file_situations.py`, `test_file_playbooks.py` | Self-checks against a throwaway bank. `python test_file_situations.py` |
+| `situations.md` | The tag list, one line per decision an agent faces. No plays |
 | `INDEX.md` | The one file an agent reads first, and the play format |
 | `playbooks/attention.md` | The shape of a playbook, with one example play. Not content |
 | `../../hooks/bank-raw-guard.mjs` | The hook that stops a transcript reaching a context window |
 
-The playbooks themselves are not published. They are one operator's reading of other people's
+The playbooks and breakdowns themselves are not published. They are one operator's reading of other people's
 numbers, distilled from third-party transcripts, and they would be worth nothing to you as
 content. The format is the part worth copying.
 
@@ -59,7 +70,9 @@ them is the one in `SKILL.md`, that a file rebuilt on a schedule must never be h
 
 ## Why the caps are hard
 
-A transcript plus its distillation is roughly 110K tokens, so an unbounded show sweep is how
-this becomes a bill: six episodes a run, and the overflow goes back in the queue. A playbook is
-capped at 32KB (8KB until 2026-10-10) so a file that grows past it splits by subtopic or loses its weakest play, which is the
-mechanism against the real failure, a pile of raw text nobody ever distilled.
+An unbounded show sweep is how this becomes a bill, so a run takes twenty episodes (six until
+2026-10-05) and the overflow goes back in the queue. Each breakdown runs in its own subagent, so
+the transcript never sits in the main session. A playbook is capped at 32KB (8KB until
+2026-10-10) and a file that grows past it splits by subtopic; since 2026-10-20 it never drops a
+play to make room. The failure all of this guards against is a pile of raw text nobody ever
+broke down.

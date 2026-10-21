@@ -377,7 +377,7 @@ node hooks/commit-msg-guard.test.mjs
 ### bank-raw-guard (PreToolUse)
 
 A context-window guard, not a security one. The guarded directory holds full podcast and video
-transcripts, roughly 25K tokens each, and agents are supposed to read the distilled playbooks
+transcripts, roughly 25K tokens each, and agents are supposed to read the breakdowns and playbooks
 above them and reach the raw layer only through a capped search. Two names ship guarded,
 `context-bank/raw` and `skills/bank/raw`, which is where `cb.py` writes when the bank is
 installed from [`skills/bank/`](skills/bank/). Both live in one constant at the top of the file,

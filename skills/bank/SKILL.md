@@ -1,23 +1,31 @@
 ---
 name: bank
-description: Drain the Notion Context Sources queue into the context bank - ingest every queued link, distil each transcript into playbook plays, sweep approved shows for new episodes, and write status back to Notion. Use when Jared says /bank, "run the bank", "ingest the queue", or on a schedule.
+description: Drain the Notion Context Sources queue into the context bank - ingest every queued link, write a full breakdown of each episode, file every play by the situation it helps with, sweep approved shows for new episodes, and write status back to Notion. Use when Jared says /bank, "run the bank", "ingest the queue", or on a schedule.
 ---
 
 # Drain the intake queue
 
-Jared adds a row to Notion and nothing else. This turns that row into plays an agent can
-follow. Nothing here waits on him: he said so on 2026-09-01, *"that's not really a judgment
-call, that's synthesizing information and can run without me. If something is pulled from the
-bank and I don't like the idea, I can always say no."*
+Jared adds a row to Notion and nothing else. This turns that row into a full breakdown an agent
+can search by the decision in front of it. Nothing here waits on him: he said so on 2026-09-01,
+*"that's not really a judgment call, that's synthesizing information and can run without me. If
+something is pulled from the bank and I don't like the idea, I can always say no."* And on
+2026-10-20: *"I don't want to have to review each and every podcast dissection, that is the
+opposite direction of where I want to go."*
 
-So **a play entering the bank is not an endorsement.** It is a recorded claim with a named
-result behind it. The filter is evidence, not taste, and taste happens later at point of use.
+So **a play entering the bank is not an endorsement.** It is a recorded claim, labeled with how
+strong its evidence is. Taste happens later, at point of use.
+
+**What changed on 2026-10-20.** The bank used to keep only plays with a named result, and threw
+the rest of every episode away. Jared: *"We need to adjust the skill so that a dollar sign isn't
+our filter. we're missing out on a ton of really good stuff."* Now every episode gets a full
+breakdown. Evidence is a label on each play, never a reason to drop one.
 
 Run everything with the full path, since sessions launch from a home directory, not the bank:
 `python <HOME>/projects/context-bank/cb.py ...`
 
-(Reading this out of the public repo: `cb.py` sits next to this file, so that path is
-`python <path to this directory>/cb.py`. [`README.md`](README.md) covers the rest.)
+(Reading this out of the public repo: `cb.py`, `file_situations.py` and `file_playbooks.py` sit
+next to this file, so that path is `python <path to this directory>/<script>`. [`README.md`](README.md)
+covers the rest.)
 
 ## The table
 
@@ -39,8 +47,8 @@ Data source `collection://YOUR-CONTEXT-SOURCES-DATA-SOURCE-ID`.
 
 ## 1. Read the queue
 
-`notion-query-data-sources` on that data source. Take two sets: rows with `Status: Queued`,
-and rows with `Kind: Show` whose `Last swept` is missing or older than 7 days.
+Query that data source. Take two sets: rows with `Status: Queued` and `Kind: Episode`, and rows
+with `Kind: Show` whose `Last swept` is missing or older than 7 days.
 
 ## 2. Sweep the approved shows
 
@@ -53,26 +61,17 @@ python <HOME>/projects/context-bank/cb.py feed "Name=URL" "Name=URL" ... --days 
 It lists and never ingests. Treat each listed episode as a queued row: he already approved the
 show, so a new episode from it needs no second approval.
 
-Two things the output tells you and you must act on:
+- **Undated rows are not filtered.** `feed` warns how many rows carried no date. Open those
+  episode pages and check the date before adding one.
+- **A show line reading `FAILED`** did not sweep. Do not stamp `Last swept` on it (step 7).
 
-- **Undated rows are not filtered.** `feed` warns how many rows carried no date, because a flat
-  playlist without timestamps slips past `--days`. Open those episode pages and check the date
-  before adding one. Do not take them on trust.
-- **A show line reading `FAILED`** did not sweep. Do not stamp `Last swept` on it (step 6).
+## 3. Build the run list, then cut it to twenty
 
-## 3. Build the run list, then cut it to six
+Queued rows first, then swept episodes, oldest first inside each group. **Twenty episodes total
+per run** (Jared, 2026-10-05). Everything past the twentieth is filed back to Notion as a
+`Queued` `Episode` row, and your output says how many you deferred.
 
-Queued rows first, then swept episodes, oldest first inside each group.
-
-**Six episodes total across both groups, per run.** Not six per show, and not six on top of the
-queued rows. A transcript plus its distillation is roughly 110K tokens, so a 26-episode run is
-close to 3M and that is how this becomes a bill. Everything past the sixth is filed back to
-Notion as a `Queued` `Episode` row with `notion-create-pages`, and your output says how many
-you deferred.
-
-`add` skips a URL already in the bank on its own, so a sweep re-listing last week's episodes
-costs nothing. Do not pass `--force`; that is for a deliberate re-transcribe and it pays the
-full cost again.
+`add` skips a URL already in the bank. Do not pass `--force` unless re-transcribing on purpose.
 
 ## 4. Ingest
 
@@ -80,93 +79,172 @@ full cost again.
 python <HOME>/projects/context-bank/cb.py add <url> --show "NAME" --speaker "NAME"
 ```
 
-The captions path takes seconds. The whisper fallback takes 20 to 40 minutes and `add` is
-synchronous, so **run it with `run_in_background`**, or a default Bash call times out at 600
-seconds mid-transcription and you will not know whether it landed. If one times out anyway, the
-row stays `Queued` and you say so. Never guess.
+Captions take seconds; the whisper fallback takes 20 to 40 minutes and `add` is synchronous, so
+**run it with `run_in_background`**. If one times out, the row stays `Queued` and you say so.
+`add` refuses a truncated transcript, so a failure is real: report it, never retry blind. A row
+that has failed on three separate runs stops being retried: leave it `Queued` and name it.
 
-`add` refuses a truncated transcript rather than writing half of one, so a failure here is
-real. Report it, never retry blind. A row that has failed on three separate runs stops being
-retried: leave it `Queued` and name it in your output as needing his eyes.
+The bank cannot pull audio from Spotify or Apple. For a podcast link, find the same episode's
+YouTube upload and ingest that; say which URL you used.
 
-## 5. Distil, in this same run
+## 5. Break it down, in this same run
 
-A transcript nobody distilled is dead weight and that is the way this folder fails. One
-subagent per episode, in parallel.
+A transcript nobody broke down is dead weight. **One subagent per episode, in parallel.** Each
+writes one file, `breakdowns/<slug>.md`, where `<slug>` is the transcript's file name without
+`.txt`. The dispatch prompt carries everything in this step, plus:
 
-**Pick the target playbook first.** Live files are `attention.md`, `story.md`, `offers.md`,
-`hooks.md`, `editing.md`.
-
-- `hooks.md` and `editing.md` are **off limits.** They are rebuilt weekly from live web research
-  by `vid-batch/agents/research-*.md` and carry `ttl: 7d`, so anything written there is
-  destroyed on schedule. An episode that is only about hooks or editing gets ingested and
-  reported, not distilled into those files.
-- Domain `ai` and Domain `business` have no playbook yet. Create `playbooks/ai.md` or
-  `playbooks/business.md` with `checked:` today and `ttl: 90d` for ai, `timeless` for business,
-  and add its row to `INDEX.md` in the same run. An index that does not list a playbook means
-  nothing reads it.
-
-**Playbooks are capped at 32KB** (raised from 8KB by Jared on 2026-10-10).
-Over it, the weakest play comes out or the file splits by subtopic, and whichever you did gets
-named in your output. Silently dropping the new play is the one wrong answer.
-
-The dispatch prompt carries, in words:
-
-- the show, the speaker, the target playbook, and this command as the ONLY way to read the
-  transcript: `python <HOME>/projects/context-bank/cb.py transcript <slug>`. Everything
-  under `raw/` is blocked by a hook, `cat`, `sed` and Grep included, and that block holds inside
-  subagents. The `.meta.json` sidecar is readable.
-- the play format from `INDEX.md`, and the rule that a play with no named result behind it does
-  not get written
-- **the `Source:` anchor is an exact phrase from the transcript, never a line number and never a
-  section number.** The `inspo-` example in `INDEX.md` is a legacy form for a non-transcript
-  source; do not copy it. Write `raw/<file>.txt "<exact phrase>"` and confirm the phrase really
-  is in the file before writing the play.
-- the 32KB cap and the eviction rule above
+- this command as the ONLY way to read the transcript:
+  `python <HOME>/projects/context-bank/cb.py transcript <slug>`. Everything under `raw/`
+  is blocked by a hook, and that holds inside subagents. The `.meta.json` sidecar is readable.
 - **do not spawn subagents; do this work yourself**
-- verify before reporting: a claim you did not check is wrong
+- verify before reporting: every `Source:` phrase must really be in the transcript. Check it with
+  `cb.py search "<phrase>"` before writing it down.
 
-**Do not touch the `checked:` line on line 2 when appending plays.** It governs the whole file
-and `cb.py stale` reads it, so stamping today on a file last rebuilt in March reports a stale
-playbook as fresh. It moves only on a full rebuild. A brand new playbook gets today's date
-because the whole file is new.
+### What goes in: everything a practitioner would use
 
-## 6. Write back
+Cover the **whole episode**, every speaker. Keep every key point, workflow, process, best
+practice, sales tactic, content and social media strategy, pricing and offer idea, hiring and
+operations method, tool, number, script and exact wording worth reusing. Keep the host's own
+analysis too, in its own section and labeled as the host's. The ONLY things left out are ad
+reads, sponsor segments, small talk and biography with no lesson in it. Say in one line at the
+end what you left out.
 
-- `Status: Ingested` only on a row whose transcript landed **and** whose plays were written. A
-  transcript with no plays keeps `Queued`, because otherwise the queue holds zero signal that
-  undistilled text exists.
-- `Last swept` today on every show that swept successfully. Never on one that printed `FAILED`,
-  or it goes dark for a week and re-fails silently every run.
+A method with no number behind it **stays**. It gets an evidence label instead:
+
+| Label | Means |
+|---|---|
+| **Measured** | a named result with a number: revenue, a test, a before and after, a count |
+| **Reported** | the speaker says it worked for them or their clients, with no number |
+| **Opinion** | advice, a belief or a rule of thumb, with nothing behind it |
+
+Every number is the speaker's own claim. Write "she says" or "he reports", never state it as
+fact. Name anything you could not confirm (a misheard name in the captions, a date).
+
+### The breakdown's shape
+
+```markdown
+# <Episode title>
+show: <show>   speaker: <guest or main speaker>   host: <host>   date: <published>
+url: <url>   length: <h:mm>   transcript: raw/<slug>.txt
+situations: <comma list of the situation tags this episode feeds, from situations.md>
+
+## In one minute
+Five to eight lines: what this episode is really about and its strongest ideas.
+
+## <Topic section> (<start>-<end>)
+One section per real topic in the episode, in episode order, as many as the episode has.
+Prose plus whatever makes it usable: numbered steps for a workflow, a table for a schedule or a
+price ladder, the exact script or wording in quotes when the wording is the point.
+Every play in the section follows its prose, in the play format below.
+
+## The host's take (<start>-<end>)
+Their principles and examples, labeled as theirs, with plays where they give one.
+
+## Adopt, test or be careful
+| Idea | Verdict | Why |
+One row per major idea. Adopt = strong and general. Test = worth trying, depends on the case.
+Careful = specific to the speaker's scale or audience, or contradicted elsewhere in the bank.
+
+## For Jared's two lines
+**Role Build** (done-for-you AI that takes an office seat's work off small firms, sold through
+cold outreach and scoping calls): what transfers, what does not, and why.
+**The Back Office** ($79 a month Skool community for small business owners and operators setting
+up AI): what transfers, what does not, and why.
+Say "nothing here" when nothing does. Do not force it.
+
+## Timestamps
+| Time | Topic |
+
+Left out: <one line>
+```
+
+### The play format
+
+```markdown
+### <Imperative title: what to do>
+**Situation:** <tag>, <tag>
+**Do:** the method, concrete enough to act on.
+**When it works:** the conditions.
+**When it fails:** the conditions, or "not stated".
+**Evidence:** Measured | Reported | Opinion. Then what was actually said, with numbers.
+**Source:** raw/<slug>.txt "<exact phrase from the transcript>"
+```
+
+The `Source:` anchor is an exact phrase, never a line number or timestamp alone, because
+re-transcribing moves every line. A breakdown is not capped; an episode gets as many plays as it
+really holds.
+
+## 6. File it so an agent can find it
+
+The point, in Jared's words: *"I want the full breakdowns managed in such a way that an agent
+can quickly identify a play that may be applicable to a current scenario or decision."*
+
+**`situations.md`** is the one lookup. It is organised by the decision an agent is facing, not
+by topic or speaker. After each breakdown lands, add one line per play under every situation the
+play carries:
+
+```markdown
+## pricing-an-offer
+Setting or changing a price, a price ladder, discounts.
+- Price low ticket at $27-97, skip $197-997 (Maria Wendt, Measured) breakdowns/<slug>.md#price-low-ticket-at-27-to-97
+```
+
+- Do not hand-write the play lines. Run `python <HOME>/projects/context-bank/file_situations.py --check`,
+  fix what it lists, then `python <HOME>/projects/context-bank/file_situations.py`, which
+  rebuilds every tag section from the breakdowns and keeps the one-line `Conflict:` entries.
+- Use an existing situation tag when one fits. Make a new one only when none does, and give it a
+  one-line description. The file opens with a list of every tag and its description; keep it
+  current.
+- Under each tag, Measured plays first, then Reported, then Opinion.
+- When two plays under one tag contradict each other, add a line `Conflict:` naming both. That
+  is what Dolores and the other agents need to see, never something to resolve by deleting one.
+
+**Playbooks** in `playbooks/` stay, as topic views for the agents that already read them. Add each
+new play to the playbook its topic belongs in, in the same play format, with a
+`**Breakdown:** breakdowns/<slug>.md#<anchor>` line. Never remove a play or a `**Tried:**` line
+already there. A playbook over 32KB splits by subtopic (and gets its row in `INDEX.md`); it never
+silently drops a play. Do not touch line 2 (`checked:`) when appending.
+
+- Do not hand-copy plays. Link any play already in a hand-kept playbook with a `**Breakdown:**`
+  line first, then run `python <HOME>/projects/context-bank/file_playbooks.py --check` and
+  the plain run. It appends the rest to subtopic files (`playbooks/<playbook>-<tag>.md`, split at
+  32KB) and prints any new file, which gets a row in the subtopic table in `INDEX.md`.
+
+- `hooks.md` and `editing.md` are **off limits**. They are rebuilt weekly from live web research
+  and anything written there is destroyed. Plays about hooks or editing go in the breakdown and
+  in `situations.md` only.
+
+## 7. Write back
+
+- `Status: Ingested` only on a row whose transcript landed **and** whose breakdown was written
+  and filed in `situations.md`. Otherwise it keeps `Queued`.
+- `Last swept` today on every show that swept successfully. Never on one that printed `FAILED`.
 - A failed row keeps `Queued` and gets one line in its page body saying why.
 - **Read every row back after writing.** A Notion write that reports success and stores nothing
   has happened here before.
+- Commit and push the context-bank repo.
 
-## 7. Report
+## 8. Report
 
-What went in, which playbooks grew and what came out to make room, what failed and why, what
-you deferred, and any row now on its third failure.
+What went in, how many plays each breakdown holds and how many are Measured, which situation
+tags are new, any `Conflict:` lines added, what failed and why, what you deferred, and any row on
+its third failure.
 
 ## A play that got tried and did not work
 
 His words: *"at least we have the strategy and make notes about why it didn't work in that use
-case."* A play that failed for him is worth more than a missing one, because the next agent
-would otherwise propose it again.
-
-Plays are never deleted for failing. Add a line:
+case."* Plays are never deleted for failing. Add a line, and only when Jared actually said it:
 
 ```markdown
 **Tried:** 2026-09-14, on the ETB newsletter. Flat. His list is 200 people who came for a
 calculator, and the play assumes an audience that already knows the writer.
 ```
 
-That is Jared's verdict, so write it only when he actually said it. A play carrying a `Tried:`
-line still gets proposed when the case differs; name the prior failure when you propose it.
-
 ## Do not
 
+- Do not drop a play because it has no number. Label it.
 - Do not mark a row `Skip`. That is his word for no.
-- Do not raise the 32KB playbook cap or the 6-episode run cap without Jared.
+- Do not raise the 20-episode run cap without Jared.
 - Do not write to `hooks.md` or `editing.md`.
 - Do not ingest a paid course, a leak, or anything not public and free.
 - Do not report a transcript as landed without checking the file exists.

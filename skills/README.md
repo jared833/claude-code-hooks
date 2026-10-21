@@ -23,7 +23,7 @@ refuses to do, and the note explaining why a previous version was wrong.
 | [`post-week/`](post-week/) | Drafts, reviews and queues a week of written content in one sitting |
 | [`spar/`](spar/) | A brainstorm sparring partner: one idea at a time, pushes back, loads current business state first, routes survivors to the right queue |
 | [`idea-vet/`](idea-vet/) | Turns raw captured ideas into a shootable menu, with a full script per item |
-| [`bank/`](bank/) | Drains a queue of podcast and video links into a searchable methods library, distilling each transcript into plays in the same run |
+| [`bank/`](bank/) | Drains a queue of podcast and video links into a methods library: a full breakdown per episode, every play labeled by evidence and filed under the decision it helps with |
 | [`week-plan/`](week-plan/) | Plans the week's new shoots as 2 broad, 4 narrow and 1 chaos video from last week's views by bucket. Planner only, never touches footage |
 | [`vid-batch/`](vid-batch/) | Cuts a shoot into finished captioned vertical videos, registers them for review, pushes the approved ones |
 | [`written-redraft/`](written-redraft/) | Rewrites drafts that came back with feedback, then puts them back for re-approval |
