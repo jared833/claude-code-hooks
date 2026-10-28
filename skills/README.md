@@ -20,7 +20,7 @@ refuses to do, and the note explaining why a previous version was wrong.
 | [`make-skill/`](make-skill/) | Writes new skills: interviews you about a job, or captures a task you just did, then saves and tests the SKILL.md. Ships with `skill-maker.md`, an agent you can start a chat as (`claude --agent skill-maker`) |
 | [`busy-work/`](busy-work/) | An autonomous backlog-clearing session. Orchestrator plus a bounded number of workers, runs until told to stop |
 | [`freebie/`](freebie/) | Ships a free tool on a static site end to end: pick it, build it to a written standard, verify, deploy, record |
-| [`post-week/`](post-week/) | Drafts, reviews and queues a week of written content in one sitting |
+| [`post-week/`](post-week/) | Drafts a week of Instagram carousels, Story pitches and LinkedIn posts for one review sitting |
 | [`spar/`](spar/) | A brainstorm sparring partner: one idea at a time, pushes back, loads current business state first, routes survivors to the right queue |
 | [`idea-vet/`](idea-vet/) | Turns raw captured ideas into a shootable menu, with a full script per item |
 | [`bank/`](bank/) | Drains a queue of podcast and video links into a methods library: a full breakdown per episode, every play labeled by evidence and filed under the decision it helps with |

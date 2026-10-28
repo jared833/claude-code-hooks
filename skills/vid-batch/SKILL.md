@@ -323,7 +323,7 @@ nothing in the logs explaining it.
 the last 7 days. Never `get_post` per id.** This used to say "with `includeMetrics: true` on
 that pass" and left the call shape unstated, which is the difference between the pass fitting
 in the budget and breaking it: 7 days of the current cadence is 8 videos a day at 2 ids each
-(reel, Story) plus 2 decks at 1, so per-id reads are about 126 calls and breach the 100 per 15
+(reel, Story) plus 1 deck and 1 Story pitch at 1 each (2026-10-28), so per-id reads are about 126 calls and breach the 100 per 15
 minutes cap before a single push happens. The 196 this used to say was the TikTok mirror era
 (3 ids a video, 2 a deck, until 2026-09-25), the 154 before that was 6 videos a day and the 119
 before that 3; `VIDEO_PER_DAY` is 8 as of
@@ -381,7 +381,8 @@ Budget the pass before you spend it:
 
 - **A video push is 2 calls** (Instagram reel + Instagram Story), and 1 when the cut runs over
   60 seconds, because a Story that long is rejected (step 8). **A deck push is 1 call**
-  (Instagram). History: from 2026-08-17 to 2026-09-25 TikTok mirrored Instagram and a video was
+  (Instagram), and so is **a Story pitch push** (one image Story, 2026-10-28). Carousels are one
+  a day at 12:00 ET as of 2026-10-28, so a day is one deck plus one Story pitch. History: from 2026-08-17 to 2026-09-25 TikTok mirrored Instagram and a video was
   3 calls, a deck 2; from 2026-08-15 to 2026-08-17 it was 1 channel, and 3 (TikTok, Instagram,
   YouTube) before that, so an arithmetic example that assumes TikTok is historical.
 - **A reconcile is 1 call per id on an overdue post**: **2 for a video row** (reels + story) and
@@ -572,7 +573,7 @@ and shows how far off each one is.
   "cut": "What was dropped and why, naming the clip ids.",
   "hooks": ["option one", "option two", "option three"],
   "descriptions": {
-    "reels": "the pain, said sharper than he would say it.\n\ntwo or three short sentences, one of them carrying the search phrase.\n\none question.\n\nLink in bio: Role Build."
+    "reels": "the pain, said sharper than he would say it.\n\ntwo or three short sentences, one of them carrying the search phrase.\n\none question.\n\nComment KIT and I'll send you the Context Kit."
   }
 }
 ```
@@ -657,7 +658,7 @@ whole-cut hold and a second-person version on 2026-07-30. Details and the refusa
   ten is. The two steps are not in conflict, they cover different points on the same curve.
 
 **Descriptions:** written for a cold audience that does not know him, and **written in blocks
-with a blank line between them.** One field, `reels`, and exactly four blocks in this order:
+with a blank line between them.** One field, `reels`, and three or four blocks in this order:
 
 ```
 the pain, named in his audience's own terms and stated sharper than they would state it
@@ -666,22 +667,36 @@ two or three short sentences saying what the video is. One of them carries the s
 <blank line>
 one question
 <blank line>
-Link in bio: free Claude Code course.
+the ending, set by the piece's role (below); a nurture piece has no fourth block
 ```
 
-Written into `post.json` that is `"block one\n\nblock two\n\nblock three\n\nLink in bio: Role
-Build."`. A worked one, wrapped here for reading and a single JSON string in the
-file:
+**The ending follows the piece's role (2026-10-28) and matches the spoken close.** Read the
+`Role` and `Keyword` properties on the Content Bank row the shoot was scripted from, then the
+exact line from the CTA section of `aide-data/memory/conventions.md`:
+- `pitch` with `KIT`: "Comment KIT and I'll send you the Context Kit."
+- `pitch` with `CLAUDE` (a Claude Code teaching piece): "Comment CLAUDE and I'll send you my
+  free Claude Code course."
+- `evergreen` / `none`: no fourth block. The caption ends on the question.
+- Any other `Keyword` (`FORGET`, `GENERIC`): that keyword's line from `conventions.md`.
+- No bank row to read: listen to the spoken close. If he says a keyword, the caption matches
+  it; if he says none, no ask. Never add an ask he did not say on camera.
+Never "Link in bio" on a reel: a cut that said "comment CLAUDE" on camera shipped a caption
+saying "Link in bio".
+
+Copy rules for every caption are the public-copy rules in `conventions.md`: no hyphenated
+words, no number ranges, never "firms", never a business size.
+
+Written into `post.json` that is `"block one\n\nblock two\n\nblock three\n\nComment KIT and
+I'll send you the Context Kit."` for a pitch reel. A worked evergreen one, wrapped here for
+reading and a single JSON string in the file:
 
 ```
-Your content list is a to-do list you are always behind on, and every week it gets longer.
+Your content list is a list of chores you are always behind on, and every week it gets longer.
 
 I stopped treating mine like a queue. A queue drains and puts you behind. A menu just sits
 there, and an idea I skip this week is still on it next week.
 
 Where does your idea list live right now?
-
-Link in bio: Role Build.
 ```
 
 **A caption with no blank line in it is wrong even if every rule below is satisfied.** Nothing
@@ -695,13 +710,10 @@ use. It is not a hook restated and it is not a promise. This is the strategy shi
 Instagram push runs on, so a description that opens on what the video *is* rather than on what
 it *costs the viewer not to know* is wrong even if the blocks are right.
 
-**One CTA. On a reel it is always "comment CLAUDE" (2026-10-14).** Every reel's spoken close
-is the ManyChat comment flow that DMs the free Claude Code course, so the caption's last block
-is the same line, whatever the subject. History: from 2026-09-22 Role Build was the default
-("Link in bio: Role Build") and the course only for course-subject pieces; that is superseded
-for reels by `aide-data/memory/conventions.md` "UPDATE 2026-10-14". Never stack two CTAs. Read
-the exact string fresh from `conventions.md` rather than trusting the examples above, which
-are illustrative and stale.
+**One ask at most, never two.** Nurture is half the feed and the feed must never read as a
+sales page (Jared, 2026-10-27). History: Role Build was the default ending from 2026-09-22 and
+"comment CLAUDE" on every reel from 2026-10-14; both are superseded by the role rule above.
+Read the exact string fresh from `conventions.md` rather than trusting the examples here.
 
 Two rules added 2026-07-29 from the short-form reach research, because all 38 posts shipped
 between June and July 2026 carried no search phrase and no question on any platform. Each
@@ -792,6 +804,9 @@ approved.
 
 ### 7.5. Re-cut the ones he sent back
 
+Skip any row whose `kind` is `carousel` or `story`: those have no footage, and `/post-week`
+re-renders them from the note (2026-10-28).
+
 `GET /api/video?status=redraft` returns each one with his `note` on it, and the note is the
 whole brief. Real ones from 2026-07-27: "the transition at 16 seconds is off", "there are
 some cuts especially towards the end that are off, the video cuts off with no actual ending",
@@ -858,9 +873,14 @@ POST http://localhost:3220/api/video/repurpose
 **`awaitingCut`: banked banners with no video yet.** Each entry carries the `slug` to use, the
 `hook` to burn in, and `banked`, how many of his picks are still unspent on that family.
 
-**One entry per family, however deep the bank.** His rule: "once a video is approved, only one
-version of it should scheduled in buffer." The queue enforces it, so never loop the bank and cut
-five at once. The next one appears here on its own once this variant lands.
+**One entry per family per GET, so loop until the bank is empty.** The queue lists one hook per
+family and hides a family while its last variant is pending, approved or redraft. That is a
+pacing detail, not a cap: the one-scheduled-per-family rule was reversed 2026-08-16 ("flood the
+gates"), and `familyAdjacent` in `schedule.js` keeps siblings off neighbouring days. So: cut one
+per family, push them until they are `scheduled`, GET `/api/video/repurpose` again, and cut the
+next round. Stop when `awaitingCut` is empty or after 20 variants this pass (each is 2 of
+Buffer's 250 daily calls). The old "never loop the bank" line left 58 approved banners uncut by
+2026-09-26: a perfect night spent 8, and 09-23 and 09-24 spent none.
 
 **This is the expensive half and it belongs to THIS pass, not to his click.** He asked for the
 cutting to stay out of his active hours, so `/api/video/repurpose/decision` starts no pass at
@@ -1011,7 +1031,8 @@ already booked, which you cannot from the batch in your hand. Anything in `unpla
 pushed this pass; report it in the scoreboard with its reason, because that is a filming
 volume problem showing up.
 
-**A carousel is an approved row too, and steps 1 and 2 do not apply to it.** A deck has no
+**A carousel is an approved row too, and steps 1 and 2 do not apply to it. Neither do they to a
+Story pitch row** (`kind: "story"`), which is pushed by its own block in step 4. A deck has no
 footage: it arrives from `/post-week` already rendered and already deployed, with its slide URLs
 in `assets_json`. Skip straight to step 3, then push it as ONE Instagram post,
 `assets:[{image:{url}}]` per slide in deck order, text from `descriptions.instagram`, and report
@@ -1020,7 +1041,7 @@ There is no TikTok deck any more (history: a mirrored TikTok photo post from 202
 TikTok was dropped 2026-09-25).
 
 **This branch was deleted on 2026-08-09 when the carousel fan-out was killed, and it is back
-because carousels are (2026-08-15, 2 a day).** Without it `/post-week` registers
+because carousels came back (2026-08-15 at two a day; one a day at noon since 2026-10-28).** Without it `/post-week` registers
 decks that nothing ever pushes: they sit `approved` forever while every log says the week
 shipped. If you are reading this because a deck is stuck, check this step exists before checking
 anything else.
@@ -1089,7 +1110,8 @@ For each approved row:
    scoreboard by slug and duration: that is a filming and cutting problem surfacing, and a silent
    skip is what let 47 reels sit with no Story at all until 2026-08-17.
 
-   **Backfill.** On a reconcile pass, any `scheduled` row whose `buffer_post_ids` has no `story`
+   **Backfill.** On a reconcile pass, any `scheduled` row with `kind: "video"` in
+   `GET /api/video` (never a Story pitch row, whose id lives under `instagram`, and never a deck) whose `buffer_post_ids` has no `story`
    key and whose cut is under 60 seconds gets one created from the reel's own asset URL and
    `dueAt` (`get_post` on the reel id for its `assets` and `dueAt`, then `create_post`, then
    report the WHOLE merged `bufferPostIds` map, since `recordVideoPush` replaces that column). No
@@ -1117,6 +1139,21 @@ For each approved row:
      length skips have to reach the scoreboard in words.
    - **Both failed:** report nothing. The row stays `approved` and the next pass retries it
      whole.
+   **A Story pitch row, one call (added 2026-10-28).** `/post-week` registers one Story pitch a
+   day on `/video` as its own row: `kind: "story"` in `GET /api/video`, the 1080x1920 image at
+   `slides.story[0]`, the words on it at `descriptions.story`, placed at 10:00 ET by
+   `/api/video/schedule`. It is NOT a reel's Story (that rides the reel above and has no row).
+   - `create_post` on Instagram with `assets:[{image:{url}}]` from `slides.story[0]`,
+     `metadata.instagram.type:"story"`, `shouldShareToFeed:false`, no text, `dueAt` from the
+     schedule placement. The text is already in the image; `descriptions.story` is for review.
+   - Report it to `POST /api/video/push` as `bufferPostIds: {"instagram": "<id>"}`. That is the
+     shape Engage's test exercises (`test/video-story.test.js`).
+   - **Not yet proven against Buffer.** Reels' Stories are video; no image Story has gone through
+     this connector before. Read the first one back with `get_post` (`error: null`, the image
+     asset resolved). If Buffer refuses an image Story, stop pushing Story rows, ntfy, and say so
+     in the scoreboard rather than trying another route.
+   - Never on LinkedIn, and never stacked with a second ask: the image says "Reply KIT".
+
 5. **Schedule explicitly. `mode: "customScheduled"` with `dueAt` from the plan, and
    `schedulingType: "automatic"`. Never `addToQueue`.** Queue mode hands out the next free
    slot in creation order, which is blind FIFO and throws away the topic spacing the plan
