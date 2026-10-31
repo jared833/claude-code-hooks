@@ -1,6 +1,6 @@
 ---
 name: idea-vet
-description: Work up the raw ideas in the Notion Content Bank into a video-first menu Jared can shoot from - every row gets an Instagram Reel with a full spoken script, a Role (pitch or evergreen) and a Keyword (KIT, CLAUDE, FORGET, GENERIC or none) so the planners can query it, plus a LinkedIn angle when the idea shows a real task taken off someone's plate. Instagram and LinkedIn are the only posting channels. Use when Jared says /idea-vet, "vet the ideas", "work up the bank", or on a schedule.
+description: Work up the raw ideas in the Notion Content Bank into a video-first menu Jared can shoot from - every row gets an Instagram Reel with a full spoken script, a Role (pitch, evergreen or afternoon) and a Keyword (KIT, CLAUDE, FORGET, GENERIC or none) so the planners can query it, plus a LinkedIn angle when the idea shows a real task taken off someone's plate. Instagram and LinkedIn are the only posting channels. Use when Jared says /idea-vet, "vet the ideas", "work up the bank", or on a schedule.
 ---
 
 # Work up the Content Bank
@@ -32,7 +32,7 @@ Verified schema, 2026-10-27 (Role and Keyword added that day):
 | `Platform` | multi select | LinkedIn, Instagram, plus dead options (Newsletter, TikTok, Blog, X, YouTube) | Jared, as a hint. Optional. |
 | `Stage` | select | Raw, Worked up | this skill |
 | `Kind` | select | Pillar, One-off, Pickup | this skill writes the first two, `/vid-batch` writes `Pickup` |
-| `Role` | select | pitch, evergreen | this skill |
+| `Role` | select | pitch, evergreen, afternoon | this skill |
 | `Keyword` | select | KIT, CLAUDE, FORGET, GENERIC, none | this skill |
 | `Made on` | multi select | LinkedIn, Instagram, plus dead options | the producers, after something ships |
 | `Shoot status`, `Shoot slot`, `Shoot min`, `Format`, `Pool`, `Views`, `Engage slug` | various | the shoot board's columns | `/week-plan` and the shoot board, never this skill |
@@ -60,13 +60,22 @@ to a query.
 
 - `pitch` means the piece exists to sell something and ends on a keyword. `evergreen` means it
   teaches or tells a story and ends on its point.
+- **A `pitch` script sells the destination, never the pieces** (Jared, 2026-10-31: "the pieces
+  aren't important for the sale"). The hook and the first beats are the buyer's after: the role
+  live within 30 days, the week they get back, the thing that stops slipping. The kit, the
+  course or the steps show up only as proof it works, never as the pitch. Cohorts and the
+  in-a-week offer are retired; never script them.
 - `Keyword` is the word the piece's ending asks for. `KIT` for anything pitching the Context
   Kit, and for any teaching piece about context, memory or CLAUDE.md, since the kit is the paid
   answer to that problem. `CLAUDE` for a Claude Code teaching piece on anything else (it
   triggers the free course DM). `FORGET` and `GENERIC` only for the two reels scripted for those
   ManyChat flows and their direct siblings. `none` for evergreen pieces with no ask.
-- An `evergreen` row is always `none`; a row with any keyword is `pitch`. A `pitch` row is
-  never `none`.
+- `afternoon` (Jared, 2026-10-29) is the third daily post: a collab, a trend or something funny,
+  with no pitch in it. It is lighter than evergreen, built to be liked and shared, and it ends
+  on its own last line. Mark a row `afternoon` only when the idea is a bit, a skit, a trend or a
+  collab, not when it teaches. Aim for a couple a week at first, since Jared shoots them.
+- An `evergreen` or `afternoon` row is always `none`; a row with any keyword is `pitch`. A
+  `pitch` row is never `none`.
 
 **The workup goes in the page body, never into a property** (Role and Keyword aside). Nine more
 columns would wreck the table view for a payload that is prose, and the body is where it reads
@@ -158,12 +167,12 @@ rings in `~/.claude/skills/week-plan/SKILL.md` (audience: small businesses and s
 `narrow` is ring 1 or 2, `broad` is ring 3, and an idea that only fits ring 4 or 5 is `chaos` at
 best. A suggestion inside the body, never a Notion property; `/week-plan` may overrule it.
 
-**Role.** `pitch` or `evergreen`, and the keyword, one line why. Same values as the properties
+**Role.** `pitch`, `evergreen` or `afternoon`, and the keyword, one line why. Same values as the properties
 set in step 5.
 
 **Video.** Every row gets one Instagram Reel script (Jared, 2026-08-13: "there will be a video
-done on each row"). Two lines: the shape (talking head, screen capture, cutaway,
-demo-over-voiceover, whatever actually fits this idea) and the edit approach, named
+done on each row"). Two lines: the shape (talking head, talking head with still cutaways,
+whatever actually fits this idea, but never a screen recording he has to shoot) and the edit approach, named
 specifically. **Vary the edit approach row to row** - jump cuts are one option, not the
 default, and nothing too belligerent.
 
@@ -189,23 +198,31 @@ jobs, never copy paste between them.
 **Video description.** Actual caption copy for Instagram, not a description of what it would
 say. **It opens on the pain**, named in his audience's own terms and stated sharper than they
 would state it, before it says what the video is (Jared, 2026-08-15). The ending follows Role
-and Keyword: an evergreen piece ends on its point with no ask; a pitch piece ends on
+and Keyword: an evergreen or afternoon piece ends on its point or its last line with no ask; a pitch piece ends on
 "Comment KIT" (or CLAUDE, FORGET, GENERIC, whichever the row carries). Read the exact keyword
 lines from the CTA section of `aide-data/memory/conventions.md`. Never "Link in bio" on a reel,
 and never stack two asks.
 
-**Script.** The full spoken script for the video, not a shot list. Jared, 2026-08-13: "I want
-scripts for all videos." Write what he actually says, in order, broken into beats. This is
-the section that has to be complete, and it is exempt from this template's line caps. Every
-beat carries:
-- **What he says** - the actual line, not a paraphrase.
+**Script.** A talking guide, not a word for word script (Jared, 2026-10-29: fully scripted takes
+came out robotic, so "I don't want the middle bit to be scripted"). Only two parts are written
+out in full: the **hook**, the exact opening line, and the **ending**, the exact last line. Everything
+between them is beats he talks through in his own words. Keep the heading `**Script.**` because
+`/week-plan` looks for it. It is exempt from this template's line caps. Every middle beat carries:
+- **The point** - what this beat has to get across, in one line, written as a note to him
+  ("show that it forgot the client's name"), never as a line for him to say.
+- **Must land** - only when the beat needs one: the one fact, number or phrase that has to come
+  out right. Everything else is his to say however it comes out.
 - **How it is captured** - on camera, voiceover only, or no talking at all.
-- **What is on screen** - specific enough he can go get it without asking. A screen capture
-  says desktop or phone, which app, and what state it has to be in.
+- **What is on screen** - Jared does not shoot his screen (Jared, 2026-10-29: the widescreen
+  monitor and setting up the terminal are not worth it). He shoots himself only. Anything the
+  viewer needs to see from the computer is a still Priya makes from the real file or output
+  and saves to `Social Content/stills/`, which `/vid-batch` cuts in as a cutaway. Name the
+  still here (what it shows, from which real source) so it can be made before the cut.
 - **NEEDS YOU** - on any beat needing a fact only he has, naming the fact.
 
-If the script's ending asks for a keyword, the last spoken line says it in plain words and
-nothing comes after it. State total runtime at the top with a rough second count per beat, and
+Keep the middle to three or four beats, few enough to hold in his head without reading. The
+ending line is the only place a keyword goes: if the piece asks for one, the ending says it in
+plain words and nothing comes after it. State total runtime at the top with a rough second count per beat, and
 the shoot minutes (roughly 2x runtime plus setup). Never invent a screenshot or still; if a shot
 does not exist and cannot be captured, say the beat waits on it.
 
@@ -230,9 +247,8 @@ posts with metrics.
 5. Set `Stage` to `Worked up`, plus `Kind`, `Role` and `Keyword` on that row. Nothing else.
 
    `Kind` is `Pillar` or `One-off` off the step 2 call, **unless the script is blocked**, in
-   which case `Pickup`. The boundary, from Jared 2026-07-28: **a still he can capture in two
-   minutes is never a blocker.** Screenshots, desktop screen captures and phone screen captures
-   are all things he makes on demand. `Pickup` is for footage that does not exist and cannot be
+   which case `Pickup`. The boundary, from Jared 2026-07-28: **a still is never a blocker.** Since 2026-10-29
+   Priya makes the stills from the real files, so Jared never captures his screen at all. `Pickup` is for footage that does not exist and cannot be
    made at a desk: him on camera in a place he is not, b-roll of a physical thing, a reshoot, a
    moment he has to go catch.
 
