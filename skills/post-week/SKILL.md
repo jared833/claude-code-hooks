@@ -54,7 +54,7 @@ Read the exact lines from the CTA section of `<HOME>\projects\aide-data\memory\c
 every run; the summary here is not the source.
 
 - **Nurture:** no ask. It ends on its point. No keyword, no "link in bio", no "follow for more".
-- **Pitch (Context Kit, $47):** ends on "Comment KIT". ManyChat sends the link.
+- **Pitch (Context Kit, $27.99):** ends on "Comment KIT". ManyChat sends the link.
 - **Claude Code teaching piece:** ends on "Comment CLAUDE" (the free course). That is a pitch
   for the course, so it takes a pitch day, never a nurture day.
 - **Story pitch:** a Story has no comments, so it ends on "Reply KIT". ManyChat answers story
